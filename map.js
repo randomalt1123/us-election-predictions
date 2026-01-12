@@ -42,49 +42,30 @@ function highlightFeature(e) {
     fillOpacity: 0.9
   });
 
-  if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
-    layer.bringToFront();
-  }
-
+  layer.bringToFront();
   updateInfo(layer.feature.properties);
-}
-
-function resetHighlight(e) {
-  if (hoveredLayer === e.target) {
-    e.target.setStyle(baseStyle(e.target.feature));
-    hoveredLayer = null;
-    updateInfo(null);
-  }
 }
 
 function onEachFeature(feature, layer) {
   layer.on({
-    mouseover: highlightFeature,
-    mouseout: resetHighlight
+    mouseover: highlightFeature
   });
 }
 
 fetch("https://raw.githubusercontent.com/civic-interconnect/civic-data-boundaries-us-cd118/main/data-out/national/cd118_us.geojson")
-  .then(res => res.json())
+  .then(r => r.json())
   .then(data => {
     geojsonLayer = L.geoJSON(data, {
       style: baseStyle,
       onEachFeature
     }).addTo(map);
+ 
+    geojsonLayer.getContainer().addEventListener("mouseleave", () => {
+      if (hoveredLayer) {
+        hoveredLayer.setStyle(baseStyle(hoveredLayer.feature));
+        hoveredLayer = null;
+        updateInfo(null);
+      }
+    });
   });
 
-map.on("zoomend", () => {
-  if (!geojsonLayer) return;
-
-  const interactive = map.getZoom() >= 4;
-  geojsonLayer.eachLayer(layer => {
-    layer.options.interactive = interactive;
-
-    // safety reset if zooming out
-    if (!interactive && hoveredLayer === layer) {
-      layer.setStyle(baseStyle(layer.feature));
-      hoveredLayer = null;
-      updateInfo(null);
-    }
-  });
-});
