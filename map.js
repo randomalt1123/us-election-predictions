@@ -10,18 +10,12 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 const info = document.getElementById("info");
 
 function updateInfo(props) {
-  if (!props) {
-    info.innerHTML = "Hover over a district";
-    return;
-  }
-
-  info.innerHTML = `
-    <b>${props.STATE_NAME}</b><br>
-    District ${props.DISTRICT}
-  `;
+  info.innerHTML = props
+    ? `<b>${props.STATE_NAME}</b><br>District ${props.DISTRICT}`
+    : "Hover over a district";
 }
 
-function style(feature) {
+function baseStyle(feature) {
   return {
     weight: 0.6,
     color: "#333",
@@ -31,9 +25,16 @@ function style(feature) {
 }
 
 let geojsonLayer;
+let hoveredLayer = null;
 
 function highlightFeature(e) {
   const layer = e.target;
+
+  if (hoveredLayer && hoveredLayer !== layer) {
+    hoveredLayer.setStyle(baseStyle(hoveredLayer.feature));
+  }
+
+  hoveredLayer = layer;
 
   layer.setStyle({
     weight: 2,
@@ -49,8 +50,11 @@ function highlightFeature(e) {
 }
 
 function resetHighlight(e) {
-  geojsonLayer.resetStyle(e.target);
-  updateInfo(null);
+  if (hoveredLayer === e.target) {
+    e.target.setStyle(baseStyle(e.target.feature));
+    hoveredLayer = null;
+    updateInfo(null);
+  }
 }
 
 function onEachFeature(feature, layer) {
@@ -63,9 +67,11 @@ function onEachFeature(feature, layer) {
 fetch("https://raw.githubusercontent.com/civic-interconnect/civic-data-boundaries-us-cd118/main/data-out/national/cd118_us.geojson")
   .then(res => res.json())
   .then(data => {
-    L.geoJSON(data, { style, onEachFeature }).addTo(map);
+    geojsonLayer = L.geoJSON(data, {
+      style: baseStyle,
+      onEachFeature
+    }).addTo(map);
   });
-
 
 map.on("zoomend", () => {
   if (!geojsonLayer) return;
@@ -73,5 +79,12 @@ map.on("zoomend", () => {
   const interactive = map.getZoom() >= 4;
   geojsonLayer.eachLayer(layer => {
     layer.options.interactive = interactive;
+
+    // safety reset if zooming out
+    if (!interactive && hoveredLayer === layer) {
+      layer.setStyle(baseStyle(layer.feature));
+      hoveredLayer = null;
+      updateInfo(null);
+    }
   });
 });
