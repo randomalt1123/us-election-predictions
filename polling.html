@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Generic Ballot Polling Average</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #f5f6f8;
+      color: #222;
+      padding: 24px;
+    }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: #1a3a6e;
+      text-decoration: none;
+    }
+    .back-link:hover { text-decoration: underline; }
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 20px;
+    }
+    .avg-hero {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .avg-hero .big {
+      font-size: 36px;
+      font-weight: 800;
+    }
+    .avg-hero .label {
+      font-size: 14px;
+      color: #555;
+    }
+    .avg-hero .margin {
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .card {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #333;
+    }
+    #poll-graph { overflow: visible; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th {
+      text-align: left;
+      padding: 6px 10px;
+      border-bottom: 2px solid #ddd;
+      font-weight: 600;
+      color: #555;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    td {
+      padding: 6px 10px;
+      border-bottom: 1px solid #eee;
+    }
+    tr:last-child td { border-bottom: none; }
+    .dem-col { color: #3949ab; font-weight: 600; }
+    .rep-col { color: #c62828; font-weight: 600; }
+    .muted { color: #999; }
+    .algo-note {
+      font-size: 12px;
+      color: #777;
+      line-height: 1.6;
+      margin-top: 8px;
+    }
+    .tp-toggle {
+      display: inline-block;
+      font-size: 12px;
+      padding: 4px 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background: #f5f5f5;
+      cursor: pointer;
+      margin-left: 12px;
+      vertical-align: middle;
+      transition: background 0.15s;
+    }
+    .tp-toggle:hover { background: #e8e8e8; }
+    .tp-toggle.active { background: #1a3a6e; color: white; border-color: #1a3a6e; }
+  </style>
+</head>
+<body>
+
+<a href="index.html" class="back-link">&larr; Back to map</a>
+<h1>Generic Ballot Polling Average</h1>
+<p class="subtitle">Weighted by recency (30-day half-life) and sample size (&radic;n)</p>
+
+<div class="avg-hero" id="avg-hero">—</div>
+
+<div class="card">
+  <h2>Trend <button type="button" id="tp-toggle-btn" class="tp-toggle">Exclude undecideds</button></h2>
+  <div id="poll-graph"></div>
+</div>
+
+<div class="card">
+  <h2>All polls</h2>
+  <div id="poll-table"></div>
+</div>
+
+<div class="card">
+  <h2>Methodology</h2>
+  <p class="algo-note">
+    Each poll is converted to a two-party Democratic share, then to a D&minus;R margin.<br>
+    Polls are weighted by <strong>&radic;(sample size)</strong> and an exponential recency factor
+    with a <strong>30-day half-life</strong>. The weighted average is then used as the generic
+    ballot estimate. In "Shift from 2024" mode on the map, every district is shifted by the
+    difference between this average's margin and the 2024 national House margin (R+2.0).
+  </p>
+</div>
+
+<script src="polls.js"></script>
+<script src="poll-average.js"></script>
+<script>
+(function () {
+  const polls = window.GENERIC_POLLS || [];
+  const PA = window.POLL_AVERAGE;
+
+  function refreshHero() {
+    const hero = document.getElementById("avg-hero");
+    let avg;
+    if (PA.isTwoParty()) {
+      const tp = PA.compute(polls);
+      if (tp !== null) avg = { dem: tp, rep: 100 - tp };
+      else avg = null;
+    } else {
+      avg = PA.computeRaw(polls);
+    }
+    if (avg !== null) {
+      hero.innerHTML = PA.formatHTML(avg, 36);
+    } else {
+      hero.textContent = "No polls yet.";
+    }
+  }
+
+  refreshHero();
+  PA.update();
+
+  const tpBtn = document.getElementById("tp-toggle-btn");
+  if (tpBtn) {
+    tpBtn.addEventListener("click", () => {
+      const on = !PA.isTwoParty();
+      PA.setTwoParty(on);
+      tpBtn.classList.toggle("active", on);
+      tpBtn.textContent = on ? "Include undecideds" : "Exclude undecideds";
+      refreshHero();
+      PA.update();
+    });
+  }
+
+  const tableDiv = document.getElementById("poll-table");
+  if (polls.length === 0) {
+    tableDiv.innerHTML = '<p style="color:#888;font-size:13px">No poll data yet.</p>';
+    return;
+  }
+
+  const sorted = [...polls].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  const rows = sorted.map(p => {
+    const d = +p.dem, r = +p.rep;
+    let marginStr = "—";
+    if (isFinite(d) && isFinite(r)) {
+      const m = d - r;
+      if (m === 0) marginStr = "EVEN";
+      else {
+        const side = m > 0 ? "D" : "R";
+        const col = m > 0 ? "#3949ab" : "#c62828";
+        marginStr = '<span style="color:' + col + ';font-weight:600">' + side + "+" + Math.abs(m) + "</span>";
+      }
+    }
+    return `<tr>
+      <td>${p.date || "—"}</td>
+      <td>${p.pollster || '<span class="muted">—</span>'}</td>
+      <td class="dem-col">${p.dem != null ? p.dem + "%" : "—"}</td>
+      <td class="rep-col">${p.rep != null ? p.rep + "%" : "—"}</td>
+      <td>${marginStr}</td>
+      <td>${p.sample || '<span class="muted">—</span>'}</td>
+    </tr>`;
+  }).join("");
+
+  tableDiv.innerHTML = `<table>
+    <thead><tr>
+      <th>Date</th><th>Pollster</th><th>Dem</th><th>Rep</th><th>Margin</th><th>Sample</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,173 @@
+"""
+Build district-2024-baseline.js with D−R margin per CD.
+Uses House results where contested; falls back to 2024 presidential results for
+districts where no Democrat or no Republican ran.
+"""
+import csv
+import io
+import json
+import urllib.request
+from collections import defaultdict
+
+HOUSE_URL = "https://raw.githubusercontent.com/fivethirtyeight/election-results/main/election_results_house.csv"
+PRES_URL = "https://docs.google.com/spreadsheets/d/1ng1i_Dm_RMDnEvauH44pgE6JCUsapcuu8F2pCfeLWFo/export?format=csv&gid=620838163"
+
+CSV_TO_MAP_ID = {
+    "AK-01": "AK-AL",
+    "DE-01": "DE-AL",
+    "ND-01": "ND-AL",
+    "SD-01": "SD-AL",
+    "VT-01": "VT-AL",
+    "WY-01": "WY-AL",
+}
+
+LA_MARGINS = {
+    "LA-01": -47.0,
+    "LA-02": 20.6,
+    "LA-03": -62.6,
+    "LA-04": -71.6,
+    "LA-05": -44.0,
+    "LA-06": 4.0,
+}
+
+
+def seat_to_csv_code(state_abbrev, seat):
+    s = seat.strip()
+    if "At Large" in s or s == "At-Large District":
+        return f"{state_abbrev}-AL"
+    if s.startswith("District "):
+        n = int(s.replace("District ", "").strip())
+        return f"{state_abbrev}-{n:02d}"
+    return None
+
+
+def to_map_id(csv_code):
+    return CSV_TO_MAP_ID.get(csv_code, csv_code)
+
+
+# ── 1. Parse House results ──────────────────────────────────────────────────
+print("Downloading House results...")
+raw = urllib.request.urlopen(HOUSE_URL).read().decode("utf-8")
+reader = csv.DictReader(io.StringIO(raw))
+
+by_seat = defaultdict(list)
+for row in reader:
+    if row["cycle"] != "2024" or row["stage"] != "general":
+        continue
+    if row["state_abbrev"] in ("GU", "PR", "VI", "DC", "AS", "MP"):
+        continue
+    k = (row["state_abbrev"], row["office_seat_name"])
+    by_seat[k].append(row)
+
+house_margins = {}
+uncontested = set()
+national_dem_v = national_rep_v = 0
+
+for (_st, seat), rows in by_seat.items():
+    st = rows[0]["state_abbrev"]
+    csv_code = seat_to_csv_code(st, seat)
+    if not csv_code:
+        continue
+    code = to_map_id(csv_code)
+
+    dem_v = rep_v = 0
+    has_dem = has_rep = False
+    for r in rows:
+        p = (r.get("ballot_party") or "").upper()
+        try:
+            v = int(float(r.get("votes") or 0))
+        except ValueError:
+            v = 0
+        if p == "DEM":
+            dem_v += v
+            has_dem = True
+        elif p == "REP":
+            rep_v += v
+            has_rep = True
+
+    total = dem_v + rep_v
+    if total > 0 and has_dem and has_rep:
+        margin = round((dem_v - rep_v) / total * 100, 1)
+        house_margins[code] = margin
+        national_dem_v += dem_v
+        national_rep_v += rep_v
+    else:
+        uncontested.add(code)
+
+for k, v in LA_MARGINS.items():
+    if k not in house_margins:
+        house_margins[k] = v
+
+# ── 2. Parse presidential results for uncontested districts ─────────────────
+print("Downloading presidential results...")
+req = urllib.request.Request(PRES_URL, headers={"User-Agent": "Mozilla/5.0"})
+pres_raw = urllib.request.urlopen(req).read().decode("utf-8")
+pres_reader = csv.reader(io.StringIO(pres_raw))
+rows_list = list(pres_reader)
+
+pres_margins = {}
+for row in rows_list:
+    if not row or len(row) < 6:
+        continue
+    dist = row[0].strip()
+    if not dist or "-" not in dist:
+        continue
+    parts = dist.split("-")
+    if len(parts) != 2:
+        continue
+    st, num = parts
+    if len(st) != 2 or not st.isalpha():
+        continue
+    try:
+        margin_str = row[5].strip().replace(",", "")
+        margin = float(margin_str)
+        pres_margins[dist] = margin
+    except (ValueError, IndexError):
+        continue
+
+# The spreadsheet uses XX-AL for at-large; our map also uses XX-AL, so should match.
+
+# ── 3. Merge: house margins + presidential fallback ─────────────────────────
+final_margins = {}
+pres_used = []
+
+for code in sorted(set(list(house_margins.keys()) + list(uncontested))):
+    if code in house_margins:
+        final_margins[code] = house_margins[code]
+    elif code in pres_margins:
+        final_margins[code] = round(pres_margins[code], 1)
+        pres_used.append(code)
+    else:
+        print(f"  WARNING: no data for {code}, defaulting to 0")
+        final_margins[code] = 0.0
+
+# Also check any districts in pres_margins that we have as uncontested
+for code in uncontested:
+    if code not in final_margins and code in pres_margins:
+        final_margins[code] = round(pres_margins[code], 1)
+        pres_used.append(code)
+
+if pres_used:
+    print(f"  Used presidential data for: {', '.join(sorted(pres_used))}")
+
+# National margin
+nat_total = national_dem_v + national_rep_v
+national_margin = round((national_dem_v - national_rep_v) / nat_total * 100, 1) if nat_total > 0 else -2.6
+
+print(f"  National margin: D{'+' if national_margin >= 0 else ''}{national_margin}")
+print(f"  Districts: {len(final_margins)}")
+
+# ── 4. Write JS ─────────────────────────────────────────────────────────────
+out_path = __import__("pathlib").Path(__file__).resolve().parent / "district-2024-baseline.js"
+lines = [
+    "/** Auto-generated by _build_baseline.py — 2024 D−R margin per district. */",
+    "window.HOUSE_2024_BASELINE = {",
+    f"  nationalMargin: {national_margin},",
+    "  marginById: {",
+]
+for code in sorted(final_margins.keys()):
+    lines.append(f'    "{code}": {final_margins[code]},')
+lines.append("  },\n};")
+
+out_path.write_text("\n".join(lines), encoding="utf-8")
+print("Wrote", out_path)
