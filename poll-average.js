@@ -57,9 +57,23 @@ function _renderGraph(polls, avg) {
   const container = document.getElementById("poll-graph");
   if (!container) return;
 
+  const dark = document.body.classList.contains("dark-mode");
+  const C = {
+    bg:        dark ? "#1a1a1a" : "#f8f8f8",
+    bgStroke:  dark ? "#333"    : "#ddd",
+    gridLine:  dark ? "#2e2e2e" : "#eee",
+    tick:      dark ? "#555"    : "#aaa",
+    label:     dark ? "#999"    : "#666",
+    dotStroke: dark ? "#1a1a1a" : "white",
+    tooltip:   dark ? "#1e1e1e" : "white",
+    ttBorder:  dark ? "#444"    : "#ccc",
+    ttText:    dark ? "#e0e0e0" : "inherit",
+    crosshair: dark ? "#aaa"    : "#555",
+  };
+
   const W = Math.min(container.clientWidth || 600, 800) || 600;
   const H = Math.round(W * 0.42);
-  const PL = 30, PR = 8, PT = 10, PB = 24;
+  const PL = 38, PR = 10, PT = 14, PB = 34;
   const pw = W - PL - PR, ph = H - PT - PB;
 
   const pts = polls
@@ -104,46 +118,64 @@ function _renderGraph(polls, avg) {
   const yTicks = [];
   for (let v = yMin; v <= yMax; v += 2) yTicks.push(v);
 
-  const fmtDate = ms => {
-    const d = new Date(ms);
-    return `${d.getMonth() + 1}/${d.getDate()}`;
-  };
+  // Build month tick marks along x-axis
+  const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const xMonthTicks = [];
+  {
+    const d0 = new Date(minMs);
+    // start at the 1st of the month after minMs
+    let cur = new Date(d0.getFullYear(), d0.getMonth() + 1, 1);
+    while (cur.getTime() <= maxMs) {
+      const ms = cur.getTime();
+      const x = xS(ms);
+      // only draw if it fits with a small margin from edges
+      if (x > PL + 10 && x < PL + pw - 10) {
+        xMonthTicks.push({ ms, x, label: MONTH_NAMES[cur.getMonth()] });
+      }
+      cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
+    }
+  }
+
+  const FS = 9; // base font size for axis labels
 
   const parts = [
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" style="display:block;overflow:visible">`,
-    `<rect x="${PL}" y="${PT}" width="${pw}" height="${ph}" fill="#f8f8f8" stroke="#ddd" stroke-width="0.5"/>`,
-    // Y ticks
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" style="display:block;overflow:visible;font-family:sans-serif">`,
+    `<rect x="${PL}" y="${PT}" width="${pw}" height="${ph}" fill="${C.bg}" stroke="${C.bgStroke}" stroke-width="0.5"/>`,
+    // Y ticks + grid
     ...yTicks.map(v =>
-      `<line x1="${PL - 3}" y1="${yS(v).toFixed(1)}" x2="${PL}" y2="${yS(v).toFixed(1)}" stroke="#aaa" stroke-width="0.75"/>` +
-      `<line x1="${PL}" y1="${yS(v).toFixed(1)}" x2="${PL + pw}" y2="${yS(v).toFixed(1)}" stroke="#eee" stroke-width="0.4"/>` +
-      `<text x="${PL - 5}" y="${(yS(v) + 3.5).toFixed(1)}" text-anchor="end" font-size="7" fill="#666">${v}%</text>`
+      `<line x1="${PL - 4}" y1="${yS(v).toFixed(1)}" x2="${PL}" y2="${yS(v).toFixed(1)}" stroke="${C.tick}" stroke-width="1"/>` +
+      `<line x1="${PL}" y1="${yS(v).toFixed(1)}" x2="${PL + pw}" y2="${yS(v).toFixed(1)}" stroke="${C.gridLine}" stroke-width="0.5"/>` +
+      `<text x="${PL - 6}" y="${(yS(v) + 3.5).toFixed(1)}" text-anchor="end" font-size="${FS}" fill="${C.label}">${v}%</text>`
     ),
-    // X labels
-    `<text x="${xS(minMs).toFixed(1)}" y="${PT + ph + 14}" text-anchor="middle" font-size="7" fill="#666">${fmtDate(minMs)}</text>`,
-    msRange > 2 * 86400000 ? `<text x="${xS(maxMs).toFixed(1)}" y="${PT + ph + 14}" text-anchor="middle" font-size="7" fill="#666">${fmtDate(maxMs)}</text>` : "",
+    // Month x-axis ticks + labels
+    ...xMonthTicks.map(t =>
+      `<line x1="${t.x.toFixed(1)}" y1="${PT + ph}" x2="${t.x.toFixed(1)}" y2="${PT + ph + 5}" stroke="${C.tick}" stroke-width="1"/>` +
+      `<line x1="${t.x.toFixed(1)}" y1="${PT}" x2="${t.x.toFixed(1)}" y2="${PT + ph}" stroke="${C.gridLine}" stroke-width="0.4" stroke-dasharray="3,3"/>` +
+      `<text x="${t.x.toFixed(1)}" y="${PT + ph + 17}" text-anchor="middle" font-size="${FS}" fill="${C.label}">${t.label}</text>`
+    ),
     // Trend lines
     pts.length > 1 ? curvePath(demCurve, "#3949ab") : "",
     pts.length > 1 ? curvePath(repCurve, "#c62828") : "",
     // Dem dots (blue)
     ...pts.map(p =>
-      `<circle cx="${xS(p.ms).toFixed(1)}" cy="${yS(p.dem).toFixed(1)}" r="3" fill="#3949ab" opacity="0.6" stroke="white" stroke-width="0.6"><title>${p.label ? p.label + ": " : ""}D ${p.dem}%</title></circle>`
+      `<circle cx="${xS(p.ms).toFixed(1)}" cy="${yS(p.dem).toFixed(1)}" r="3" fill="#3949ab" opacity="0.55" stroke="${C.dotStroke}" stroke-width="0.6"><title>${p.label ? p.label + ": " : ""}D ${p.dem}%</title></circle>`
     ),
     // Rep dots (red)
     ...pts.map(p =>
-      `<circle cx="${xS(p.ms).toFixed(1)}" cy="${yS(p.rep).toFixed(1)}" r="3" fill="#c62828" opacity="0.6" stroke="white" stroke-width="0.6"><title>${p.label ? p.label + ": " : ""}R ${p.rep}%</title></circle>`
+      `<circle cx="${xS(p.ms).toFixed(1)}" cy="${yS(p.rep).toFixed(1)}" r="3" fill="#c62828" opacity="0.55" stroke="${C.dotStroke}" stroke-width="0.6"><title>${p.label ? p.label + ": " : ""}R ${p.rep}%</title></circle>`
     ),
     // Legend
-    `<circle cx="${PL + pw - 50}" cy="${PT + 8}" r="3" fill="#3949ab"/>`,
-    `<text x="${PL + pw - 44}" y="${PT + 11}" font-size="8" fill="#3949ab">Dem</text>`,
-    `<circle cx="${PL + pw - 22}" cy="${PT + 8}" r="3" fill="#c62828"/>`,
-    `<text x="${PL + pw - 16}" y="${PT + 11}" font-size="8" fill="#c62828">Rep</text>`,
+    `<circle cx="${PL + pw - 54}" cy="${PT + 10}" r="4" fill="#3949ab"/>`,
+    `<text x="${PL + pw - 46}" y="${PT + 14}" font-size="${FS + 1}" fill="#3949ab" font-weight="600">Dem</text>`,
+    `<circle cx="${PL + pw - 22}" cy="${PT + 10}" r="4" fill="#c62828"/>`,
+    `<text x="${PL + pw - 14}" y="${PT + 14}" font-size="${FS + 1}" fill="#c62828" font-weight="600">Rep</text>`,
     // Hover elements (hidden by default)
-    `<line id="pg-crosshair" x1="0" y1="${PT}" x2="0" y2="${PT + ph}" stroke="#555" stroke-width="0.75" stroke-dasharray="3,2" visibility="hidden"/>`,
-    `<circle id="pg-dot-d" r="4" fill="#3949ab" stroke="white" stroke-width="1" visibility="hidden"/>`,
-    `<circle id="pg-dot-r" r="4" fill="#c62828" stroke="white" stroke-width="1" visibility="hidden"/>`,
+    `<line id="pg-crosshair" x1="0" y1="${PT}" x2="0" y2="${PT + ph}" stroke="${C.crosshair}" stroke-width="1" stroke-dasharray="4,3" visibility="hidden"/>`,
+    `<circle id="pg-dot-d" r="5" fill="#3949ab" stroke="${C.dotStroke}" stroke-width="1.5" visibility="hidden"/>`,
+    `<circle id="pg-dot-r" r="5" fill="#c62828" stroke="${C.dotStroke}" stroke-width="1.5" visibility="hidden"/>`,
     `<rect id="pg-hover-zone" x="${PL}" y="${PT}" width="${pw}" height="${ph}" fill="transparent" style="cursor:crosshair"/>`,
     `</svg>`,
-    `<div id="pg-tooltip" style="position:absolute;display:none;pointer-events:none;background:white;border:1px solid #ccc;border-radius:4px;padding:4px 8px;font-size:11px;font-family:sans-serif;box-shadow:0 1px 4px rgba(0,0,0,0.15);white-space:nowrap;z-index:10"></div>`,
+    `<div id="pg-tooltip" style="position:absolute;display:none;pointer-events:none;background:${C.tooltip};border:1px solid ${C.ttBorder};color:${C.ttText};border-radius:6px;padding:6px 10px;font-size:12px;font-family:sans-serif;box-shadow:0 2px 8px rgba(0,0,0,0.18);white-space:nowrap;z-index:10"></div>`,
   ];
   container.style.position = "relative";
   container.innerHTML = parts.join("");
@@ -253,13 +285,25 @@ function updatePollPanel() {
   const avg = computeWeightedAverage(polls);
   const rawAvg = computeWeightedRawAverages(polls);
 
-  const avgEl = document.getElementById("poll-avg-display");
-  if (avgEl) {
-    if (rawAvg !== null) {
-      avgEl.innerHTML = _formatAvgHTML(rawAvg, 20);
-    } else {
-      avgEl.textContent = "No polls yet.";
-    }
+  // mini hero widget on main map page
+  const demEl  = document.getElementById("mw-dem");
+  const repEl  = document.getElementById("mw-rep");
+  const undEl  = document.getElementById("mw-und");
+  const mgnEl  = document.getElementById("mw-margin");
+  const undSeg = document.getElementById("mw-und-seg");
+  const undDiv = document.getElementById("mw-und-div");
+  if (demEl && rawAvg !== null) {
+    const d = rawAvg.dem, r = rawAvg.rep;
+    const und = Math.max(0, 100 - d - r);
+    demEl.textContent = d.toFixed(1) + "%";
+    repEl.textContent = r.toFixed(1) + "%";
+    undEl.textContent = und.toFixed(1) + "%";
+    const m = d - r;
+    mgnEl.textContent = Math.abs(m) < 0.05 ? "EVEN"
+      : (m > 0 ? "D" : "R") + "+" + Math.abs(m).toFixed(1);
+    // hide undecided segment when in two-party mode
+    if (undSeg) undSeg.style.display = _graphTwoParty ? "none" : "";
+    if (undDiv) undDiv.style.display = _graphTwoParty ? "none" : "";
   }
 
   const graphContainer = document.getElementById("poll-graph");

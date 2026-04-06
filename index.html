@@ -75,39 +75,98 @@
       top: 10px;
       right: 10px;
       z-index: 1000;
-      padding: 8px 14px;
-      background: white;
-      border-radius: 6px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.2);
       font-family: sans-serif;
-      font-size: 13px;
       text-align: center;
+      background: #1a1a1a;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 3px 16px rgba(0,0,0,0.25);
+      width: clamp(220px, 20vw, 340px);
     }
     .poll-avg-panel .poll-panel-title {
-      margin-bottom: 4px;
-      font-size: 11px;
+      font-size: clamp(9px, 0.9vw, 12px);
+      font-weight: 700;
+      letter-spacing: 1px;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #666;
+      padding: clamp(4px, 0.5vw, 7px) clamp(8px, 1vw, 14px);
+      background: #e4e6ea;
+      color: #555;
+      border-bottom: none;
+      line-height: 1;
+      display: block;
+      margin: 0;
+      margin-bottom: 0;
     }
-    .poll-avg-display {
-      margin: 0 0 6px;
-      line-height: 1.4;
+    .mini-hero {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      background: #1a1a1a;
+    }
+    .mini-seg {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: clamp(10px, 1.2vw, 18px) clamp(4px, 0.6vw, 10px);
+      cursor: default;
+      transition: filter 0.15s;
+    }
+    .mini-seg:hover { filter: brightness(1.08); }
+    .mini-seg.dem { background: #1e3a8a; }
+    .mini-seg.rep { background: #991b1b; }
+    .mini-seg.und { background: #4b5563; }
+    .mini-seg-label {
+      font-size: clamp(7px, 0.7vw, 10px);
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.65);
+      margin-bottom: 3px;
+    }
+    .mini-seg-pct {
+      font-size: clamp(16px, 1.8vw, 26px);
+      font-weight: 900;
+      color: white;
+      letter-spacing: -0.5px;
+      line-height: 1;
+    }
+    .mini-seg-margin {
+      font-size: clamp(8px, 0.8vw, 12px);
+      font-weight: 700;
+      color: rgba(255,255,255,0.82);
+      margin-top: 3px;
+    }
+    .mini-divider {
+      width: 1px;
+      background: rgba(255,255,255,0.18);
+      align-self: stretch;
+    }
+    .poll-avg-footer {
+      background: #e4e6ea;
+      padding: clamp(3px, 0.4vw, 6px) 10px clamp(4px, 0.5vw, 7px);
+      border-top: none;
     }
     .poll-detail-link {
       display: inline-block;
-      font-size: 11px;
+      font-size: clamp(9px, 0.85vw, 12px);
+      font-weight: 600;
       color: #1a3a6e;
       text-decoration: none;
-      border: 1px solid #ccc;
-      border-radius: 3px;
-      padding: 3px 10px;
-      cursor: pointer;
-      transition: background 0.15s;
+      letter-spacing: 0.3px;
+      transition: color 0.15s;
     }
-    .poll-detail-link:hover {
-      background: #f0f0f0;
+    .poll-detail-link:hover { color: #3a6ab5; }
+    body.dark-mode .poll-avg-panel .poll-panel-title {
+      background: #2a2a2a;
+      color: #aaa;
     }
+    body.dark-mode .poll-avg-footer {
+      background: #2a2a2a;
+    }
+    body.dark-mode .poll-detail-link { color: #90b4f8; }
+    body.dark-mode .poll-detail-link:hover { color: #c0d4ff; }
     .mode-toggle {
       display: flex;
       gap: 0;
@@ -133,9 +192,75 @@
       color: white;
       font-weight: 600;
     }
+
+    /* ---------- dark-mode toggle button ---------- */
+    .dark-toggle {
+      position: fixed;
+      bottom: 12px;
+      right: 12px;
+      z-index: 1001;
+      width: 36px;
+      height: 36px;
+      border: none;
+      border-radius: 50%;
+      background: #222;
+      color: #ffd54f;
+      font-size: 18px;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    /* ---------- dark-mode overrides ---------- */
+    body.dark-mode { background: #121212; color: #e0e0e0; }
+
+    body.dark-mode .dark-toggle { background: #e0e0e0; color: #1a1a2e; }
+
+    body.dark-mode .poll-panel {
+      background: #1e1e1e;
+      box-shadow: 0 0 10px rgba(0,0,0,0.6);
+      color: #e0e0e0;
+    }
+    body.dark-mode .poll-label { color: #bbb; }
+    body.dark-mode .poll-hint  { color: #999; }
+
+    body.dark-mode .mode-toggle { border-color: #555; }
+    body.dark-mode .mode-btn {
+      background: #2a2a2a;
+      color: #ccc;
+      border-color: #555;
+    }
+    body.dark-mode .mode-btn + .mode-btn { border-left-color: #555; }
+    body.dark-mode .mode-btn.active {
+      background: #3a6ab5;
+      color: #fff;
+    }
+
+    body.dark-mode .swing-btn {
+      background: #2a2a2a;
+      color: #ccc;
+      border-color: #555;
+    }
+    body.dark-mode .swing-btn:hover { background: #3a3a3a; }
+    body.dark-mode .swing-input {
+      background: #2a2a2a;
+      color: #e0e0e0;
+      border: 1px solid #555;
+    }
+
+    body.dark-mode #info {
+      background: #1e1e1e;
+      color: #e0e0e0;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
   </style>
 </head>
 <body>
+
+<button type="button" id="dark-toggle" class="dark-toggle" title="Toggle dark mode">&#9790;</button>
 
 <div id="poll-panel" class="poll-panel">
   <div class="poll-panel-title">Map mode</div>
@@ -159,8 +284,28 @@
 
 <div id="poll-avg-panel" class="poll-avg-panel">
   <div class="poll-panel-title">Generic Ballot</div>
-  <div id="poll-avg-display" class="poll-avg-display">—</div>
-  <a href="polling.html" class="poll-detail-link">View details &rarr;</a>
+  <div class="mini-hero" id="poll-avg-display">
+    <div class="mini-seg dem">
+      <div class="mini-seg-label">Dem</div>
+      <div class="mini-seg-pct" id="mw-dem">—</div>
+      <div class="mini-seg-margin" id="mw-margin">&nbsp;</div>
+    </div>
+    <div class="mini-divider"></div>
+    <div class="mini-seg rep">
+      <div class="mini-seg-label">Rep</div>
+      <div class="mini-seg-pct" id="mw-rep">—</div>
+      <div class="mini-seg-margin">&nbsp;</div>
+    </div>
+    <div class="mini-divider" id="mw-und-div"></div>
+    <div class="mini-seg und" id="mw-und-seg">
+      <div class="mini-seg-label">Und</div>
+      <div class="mini-seg-pct" id="mw-und">—</div>
+      <div class="mini-seg-margin">&nbsp;</div>
+    </div>
+  </div>
+  <div class="poll-avg-footer">
+    <a href="polling.html" class="poll-detail-link">View details &rarr;</a>
+  </div>
 </div>
 
 <div id="map-container">
@@ -765,7 +910,7 @@
 }
 
 #us-map path.district {
-  stroke: #333;
+  stroke: #fff;
   stroke-width: 0.65px;
   vector-effect: non-scaling-stroke;
   fill-opacity: 1;
@@ -777,4 +922,31 @@
   stroke-width: 1.75px;
 }
 
+body.dark-mode #map-container { background: #121212; }
+body.dark-mode #us-map path.district {
+  stroke: #000;
+}
+
 </style>
+
+<script>
+(function() {
+  var KEY = "darkMode";
+  function apply(on) {
+    document.body.classList.toggle("dark-mode", on);
+    var btn = document.getElementById("dark-toggle");
+    if (btn) btn.innerHTML = on ? "&#9788;" : "&#9790;";
+  }
+  var saved = localStorage.getItem(KEY);
+  if (saved === "1") apply(true);
+  document.addEventListener("DOMContentLoaded", function() {
+    if (saved === "1") apply(true);
+    document.getElementById("dark-toggle").addEventListener("click", function() {
+      var on = !document.body.classList.contains("dark-mode");
+      apply(on);
+      localStorage.setItem(KEY, on ? "1" : "0");
+      window.POLL_AVERAGE && window.POLL_AVERAGE.update();
+    });
+  });
+})();
+</script>
