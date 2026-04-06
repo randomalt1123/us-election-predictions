@@ -6,7 +6,7 @@
 
 const POLL_HALF_LIFE_DAYS = 30;
 const POLL_DEFAULT_SAMPLE = 800;
-const GRAPH_BW_MS = 2.5 * 86400000;
+const GRAPH_BW_MS = 7 * 86400000;
 
 function _pollTwoPartyD(poll) {
   const d = +poll.dem, r = +poll.rep;
@@ -53,6 +53,8 @@ function _gaussSmooth(pts, valFn, bwMs, N, minMs, msRange) {
 
 let _graphTwoParty = false;
 
+let _graphStartMs = 0;
+
 function _renderGraph(polls, avg) {
   const container = document.getElementById("poll-graph");
   if (!container) return;
@@ -86,7 +88,7 @@ function _renderGraph(polls, avg) {
       }
       return { ms: _pollMs(p), dem: d, rep: r, label: p.pollster || "" };
     })
-    .filter(p => p !== null && isFinite(p.ms))
+    .filter(p => p !== null && isFinite(p.ms) && (!_graphStartMs || p.ms >= _graphStartMs))
     .sort((a, b) => a.ms - b.ms);
 
   if (pts.length === 0) {
@@ -138,98 +140,109 @@ function _renderGraph(polls, avg) {
 
   const FS = 9; // base font size for axis labels
 
-  const parts = [
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" style="display:block;overflow:visible;font-family:sans-serif">`,
+  const staticParts = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" style="display:block;font-family:sans-serif">`,
     `<rect x="${PL}" y="${PT}" width="${pw}" height="${ph}" fill="${C.bg}" stroke="${C.bgStroke}" stroke-width="0.5"/>`,
-    // Y ticks + grid
     ...yTicks.map(v =>
       `<line x1="${PL - 4}" y1="${yS(v).toFixed(1)}" x2="${PL}" y2="${yS(v).toFixed(1)}" stroke="${C.tick}" stroke-width="1"/>` +
       `<line x1="${PL}" y1="${yS(v).toFixed(1)}" x2="${PL + pw}" y2="${yS(v).toFixed(1)}" stroke="${C.gridLine}" stroke-width="0.5"/>` +
       `<text x="${PL - 6}" y="${(yS(v) + 3.5).toFixed(1)}" text-anchor="end" font-size="${FS}" fill="${C.label}">${v}%</text>`
     ),
-    // Month x-axis ticks + labels
     ...xMonthTicks.map(t =>
       `<line x1="${t.x.toFixed(1)}" y1="${PT + ph}" x2="${t.x.toFixed(1)}" y2="${PT + ph + 5}" stroke="${C.tick}" stroke-width="1"/>` +
       `<line x1="${t.x.toFixed(1)}" y1="${PT}" x2="${t.x.toFixed(1)}" y2="${PT + ph}" stroke="${C.gridLine}" stroke-width="0.4" stroke-dasharray="3,3"/>` +
       `<text x="${t.x.toFixed(1)}" y="${PT + ph + 17}" text-anchor="middle" font-size="${FS}" fill="${C.label}">${t.label}</text>`
     ),
-    // Trend lines
     pts.length > 1 ? curvePath(demCurve, "#3949ab") : "",
     pts.length > 1 ? curvePath(repCurve, "#c62828") : "",
-    // Dem dots (blue)
-    ...pts.map(p =>
-      `<circle cx="${xS(p.ms).toFixed(1)}" cy="${yS(p.dem).toFixed(1)}" r="3" fill="#3949ab" opacity="0.55" stroke="${C.dotStroke}" stroke-width="0.6"><title>${p.label ? p.label + ": " : ""}D ${p.dem}%</title></circle>`
-    ),
-    // Rep dots (red)
-    ...pts.map(p =>
-      `<circle cx="${xS(p.ms).toFixed(1)}" cy="${yS(p.rep).toFixed(1)}" r="3" fill="#c62828" opacity="0.55" stroke="${C.dotStroke}" stroke-width="0.6"><title>${p.label ? p.label + ": " : ""}R ${p.rep}%</title></circle>`
-    ),
-    // Legend
+    `<path d="${pts.map(p => { const cx = xS(p.ms), cy = yS(p.dem); return `M${(cx-3).toFixed(1)} ${cy.toFixed(1)}a3 3 0 1 0 6 0a3 3 0 1 0-6 0`; }).join('')}" fill="#3949ab" opacity="0.3" stroke="${C.dotStroke}" stroke-width="0.6"/>`,
+    `<path d="${pts.map(p => { const cx = xS(p.ms), cy = yS(p.rep); return `M${(cx-3).toFixed(1)} ${cy.toFixed(1)}a3 3 0 1 0 6 0a3 3 0 1 0-6 0`; }).join('')}" fill="#c62828" opacity="0.3" stroke="${C.dotStroke}" stroke-width="0.6"/>`,
     `<circle cx="${PL + pw - 54}" cy="${PT + 10}" r="4" fill="#3949ab"/>`,
     `<text x="${PL + pw - 46}" y="${PT + 14}" font-size="${FS + 1}" fill="#3949ab" font-weight="600">Dem</text>`,
     `<circle cx="${PL + pw - 22}" cy="${PT + 10}" r="4" fill="#c62828"/>`,
     `<text x="${PL + pw - 14}" y="${PT + 14}" font-size="${FS + 1}" fill="#c62828" font-weight="600">Rep</text>`,
-    // Hover elements (hidden by default)
-    `<line id="pg-crosshair" x1="0" y1="${PT}" x2="0" y2="${PT + ph}" stroke="${C.crosshair}" stroke-width="1" stroke-dasharray="4,3" visibility="hidden"/>`,
-    `<circle id="pg-dot-d" r="5" fill="#3949ab" stroke="${C.dotStroke}" stroke-width="1.5" visibility="hidden"/>`,
-    `<circle id="pg-dot-r" r="5" fill="#c62828" stroke="${C.dotStroke}" stroke-width="1.5" visibility="hidden"/>`,
-    `<rect id="pg-hover-zone" x="${PL}" y="${PT}" width="${pw}" height="${ph}" fill="transparent" style="cursor:crosshair"/>`,
     `</svg>`,
-    `<div id="pg-tooltip" style="position:absolute;display:none;pointer-events:none;background:${C.tooltip};border:1px solid ${C.ttBorder};color:${C.ttText};border-radius:6px;padding:6px 10px;font-size:12px;font-family:sans-serif;box-shadow:0 2px 8px rgba(0,0,0,0.18);white-space:nowrap;z-index:10"></div>`,
   ];
+  const dpr = window.devicePixelRatio || 1;
+  const tooltipHtml = `<div id="pg-tooltip" style="position:absolute;top:${PT - 4}px;left:0;display:none;pointer-events:none;background:${C.tooltip};border:1px solid ${C.ttBorder};color:${C.ttText};border-radius:6px;padding:6px 10px;font-size:12px;font-family:sans-serif;box-shadow:0 2px 8px rgba(0,0,0,0.18);white-space:nowrap;z-index:10;will-change:transform"><strong id="pg-tt-date"></strong><br><span id="pg-tt-d" style="color:#3949ab;font-weight:600"></span> – <span id="pg-tt-r" style="color:#c62828;font-weight:600"></span><br><span id="pg-tt-m" style="font-weight:600"></span></div>`;
+
   container.style.position = "relative";
-  container.innerHTML = parts.join("");
+  container.innerHTML = staticParts.join("") + `<canvas id="pg-overlay" width="${W*dpr}" height="${H*dpr}" style="position:absolute;top:0;left:0;width:${W}px;height:${H}px;cursor:crosshair"></canvas>` + tooltipHtml;
 
-  const svg = container.querySelector("svg");
-  const hoverZone = document.getElementById("pg-hover-zone");
-  const crosshair = document.getElementById("pg-crosshair");
-  const dotD = document.getElementById("pg-dot-d");
-  const dotR = document.getElementById("pg-dot-r");
+  const canvas = document.getElementById("pg-overlay");
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
   const tooltip = document.getElementById("pg-tooltip");
-  if (!hoverZone || !svg) return;
+  const ttDate = document.getElementById("pg-tt-date");
+  const ttD = document.getElementById("pg-tt-d");
+  const ttR = document.getElementById("pg-tt-r");
+  const ttM = document.getElementById("pg-tt-m");
+  if (!canvas) return;
 
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   const fmtFull = ms => {
     const dt = new Date(ms);
-    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     return `${months[dt.getMonth()]} ${dt.getDate()}, ${dt.getFullYear()}`;
   };
 
-  hoverZone.addEventListener("mousemove", e => {
-    const rect = svg.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const frac = (mx - PL) / pw;
-    if (frac < 0 || frac > 1) return;
-    const ms = minMs + frac * msRange;
-    const idx = Math.round(frac * N);
-    const dVal = demCurve[Math.min(idx, N)].v;
-    const rVal = repCurve[Math.min(idx, N)].v;
+  function drawOverlay(mx, dVal, rVal) {
+    ctx.clearRect(0, 0, W, H);
+    ctx.setLineDash([4, 3]);
+    ctx.strokeStyle = C.crosshair;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(mx, PT);
+    ctx.lineTo(mx, PT + ph);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    [[yS(dVal), "#3949ab"], [yS(rVal), "#c62828"]].forEach(([cy, color]) => {
+      ctx.beginPath();
+      ctx.arc(mx, cy, 5, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = C.dotStroke;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    });
+  }
 
-    crosshair.setAttribute("x1", mx.toFixed(1));
-    crosshair.setAttribute("x2", mx.toFixed(1));
-    crosshair.setAttribute("visibility", "visible");
-    dotD.setAttribute("cx", mx.toFixed(1));
-    dotD.setAttribute("cy", yS(dVal).toFixed(1));
-    dotD.setAttribute("visibility", "visible");
-    dotR.setAttribute("cx", mx.toFixed(1));
-    dotR.setAttribute("cy", yS(rVal).toFixed(1));
-    dotR.setAttribute("visibility", "visible");
+  drawOverlay(-100, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  let _cachedRect = canvas.getBoundingClientRect();
+  window.addEventListener("resize", () => { _cachedRect = canvas.getBoundingClientRect(); }, { passive: true });
 
-    const mVal = dVal - rVal;
-    const mSide = Math.abs(mVal) < 0.05 ? "EVEN" : (mVal > 0 ? "D" : "R") + "+" + Math.abs(mVal).toFixed(1);
-    const mCol = mVal >= 0 ? "#3949ab" : "#c62828";
-    tooltip.style.display = "block";
-    tooltip.innerHTML = `<strong>${fmtFull(ms)}</strong><br><span style="color:#3949ab;font-weight:600">D ${dVal.toFixed(1)}%</span> – <span style="color:#c62828;font-weight:600">R ${rVal.toFixed(1)}%</span><br><span style="color:${mCol};font-weight:600">${mSide}</span>`;
-    const tipW = tooltip.offsetWidth;
-    let tipX = mx + 10;
-    if (tipX + tipW > W) tipX = mx - tipW - 10;
-    tooltip.style.left = tipX + "px";
-    tooltip.style.top = (PT - 4) + "px";
+  let _rafPending = false;
+  canvas.addEventListener("mousemove", e => {
+    if (_rafPending) return;
+    _rafPending = true;
+    requestAnimationFrame(() => {
+      _rafPending = false;
+      const rect = _cachedRect || (_cachedRect = canvas.getBoundingClientRect());
+      const mx = e.clientX - rect.left;
+      const frac = (mx - PL) / pw;
+      if (frac < 0 || frac > 1) return;
+      const ms = minMs + frac * msRange;
+      const idx = Math.round(frac * N);
+      const dVal = demCurve[Math.min(idx, N)].v;
+      const rVal = repCurve[Math.min(idx, N)].v;
+
+      drawOverlay(mx, dVal, rVal);
+
+      const mVal = dVal - rVal;
+      const mSide = Math.abs(mVal) < 0.05 ? "EVEN" : (mVal > 0 ? "D" : "R") + "+" + Math.abs(mVal).toFixed(1);
+      ttDate.textContent = fmtFull(ms);
+      ttD.textContent = `D ${dVal.toFixed(1)}%`;
+      ttR.textContent = `R ${rVal.toFixed(1)}%`;
+      ttM.textContent = mSide;
+      ttM.style.color = mVal >= 0 ? "#3949ab" : "#c62828";
+      tooltip.style.display = "block";
+      const tipX = mx + 10 + 180 > W ? mx - 190 : mx + 10;
+      tooltip.style.transform = `translateX(${tipX}px)`;
+    });
   });
 
-  hoverZone.addEventListener("mouseleave", () => {
-    crosshair.setAttribute("visibility", "hidden");
-    dotD.setAttribute("visibility", "hidden");
-    dotR.setAttribute("visibility", "hidden");
+  canvas.addEventListener("mouseleave", () => {
+    ctx.clearRect(0, 0, W, H);
     tooltip.style.display = "none";
   });
 }
@@ -324,4 +337,5 @@ window.POLL_AVERAGE = {
   getAvg: () => computeWeightedAverage(window.GENERIC_POLLS || []),
   setTwoParty: setTwoPartyMode,
   isTwoParty: () => _graphTwoParty,
+  setStartMs: ms => { _graphStartMs = ms; },
 };
