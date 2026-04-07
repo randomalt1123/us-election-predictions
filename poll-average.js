@@ -108,7 +108,7 @@ function _renderGraph(polls, avg) {
   const xS = ms => PL + ((ms - minMs) / msRange) * pw;
   const yS = v => PT + (1 - (v - yMin) / yRange) * ph;
 
-  const N = 100;
+  const N = Math.max(100, Math.round(msRange / 86400000));
   const demCurve = _gaussSmooth(pts, p => p.dem, GRAPH_BW_MS, N, minMs, msRange);
   const repCurve = _gaussSmooth(pts, p => p.rep, GRAPH_BW_MS, N, minMs, msRange);
 

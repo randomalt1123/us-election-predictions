@@ -265,10 +265,33 @@
     .pg-btn:disabled { opacity: 0.35; cursor: default; }
     .pg-info { font-size: 12px; color: #888; padding: 0 4px; }
 
+    .pollster-search {
+      font-size: 12px;
+      padding: 4px 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      width: 140px;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .pollster-search:focus {
+      border-color: #1a3a6e;
+      box-shadow: 0 0 0 2px rgba(26,58,110,0.12);
+    }
+    .pollster-search::placeholder { color: #aaa; }
+
     body.dark-mode .per-page-wrap { color: #999; }
     body.dark-mode .per-page-wrap select {
       background: #1a1a1a; color: #ccc; border-color: #444;
     }
+    body.dark-mode .pollster-search {
+      background: #1a1a1a; color: #ccc; border-color: #444;
+    }
+    body.dark-mode .pollster-search:focus {
+      border-color: #90b4f8;
+      box-shadow: 0 0 0 2px rgba(144,180,248,0.12);
+    }
+    body.dark-mode .pollster-search::placeholder { color: #666; }
     body.dark-mode .pg-btn {
       background: #1a1a1a; color: #bbb; border-color: #444;
     }
@@ -444,16 +467,19 @@
   <div class="card">
     <div class="card-header">
       <h2>All polls</h2>
-      <div class="per-page-wrap">
-        Show
-        <select id="per-page-select">
-          <option value="10">10</option>
-          <option value="15" selected>15</option>
-          <option value="25">25</option>
-          <option value="50">50</option>
-          <option value="all">All</option>
-        </select>
-        per page
+      <div style="display:flex;align-items:center;gap:10px">
+        <input type="text" id="gb-pollster-search" class="pollster-search" placeholder="Search pollster…">
+        <div class="per-page-wrap">
+          Show
+          <select id="per-page-select">
+            <option value="10">10</option>
+            <option value="15" selected>15</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="all">All</option>
+          </select>
+          per page
+        </div>
       </div>
     </div>
     <div id="poll-table"></div>
@@ -489,7 +515,7 @@
     <!-- approval graph card -->
     <div class="card">
       <div class="card-header">
-        <h2>Trump Approval Trend</h2>
+        <h2>Trend</h2>
         <div style="display:flex;align-items:center;gap:8px">
           <div class="per-page-wrap">
             From
@@ -504,17 +530,20 @@
     <!-- approval table card -->
     <div class="card">
       <div class="card-header">
-        <h2>All approval polls</h2>
-        <div class="per-page-wrap">
-          Show
-          <select id="appr-per-page-select">
-            <option value="10">10</option>
-            <option value="15" selected>15</option>
-            <option value="25">25</option>
-            <option value="50">50</option>
-            <option value="all">All</option>
-          </select>
-          per page
+        <h2>All polls</h2>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input type="text" id="appr-pollster-search" class="pollster-search" placeholder="Search pollster…">
+          <div class="per-page-wrap">
+            Show
+            <select id="appr-per-page-select">
+              <option value="10">10</option>
+              <option value="15" selected>15</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="all">All</option>
+            </select>
+            per page
+          </div>
         </div>
       </div>
       <div id="appr-table"></div>
@@ -527,7 +556,7 @@
   <div class="card">
     <div class="card-header"><h2>Methodology</h2></div>
     <p class="algo-note">
-      Each poll is weighted by <strong>recency</strong> (Gaussian kernel, 2.5-day bandwidth) and
+      Each poll is weighted by <strong>recency</strong> (Gaussian kernel, 7-day bandwidth) and
       <strong>sample size</strong> (&radic;n). The smoothed trend line uses the same kernel across
       100 evenly-spaced time points. The displayed average always matches the rightmost point of
       the trend line. In <strong>Shift from 2024</strong> mode on the map, every district is shifted
@@ -556,6 +585,7 @@
       apply(on);
       localStorage.setItem(KEY, on ? "1" : "0");
       window.POLL_AVERAGE && window.POLL_AVERAGE.update();
+      window._reRenderApprGraph && window._reRenderApprGraph();
     });
   });
 })();
@@ -662,7 +692,7 @@
 
   const sorted = [...polls].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 
-  const rowHTMLs = sorted.map(p => {
+  function buildRow(p) {
     const d = +p.dem, r = +p.rep;
     const und = isFinite(d) && isFinite(r) ? Math.max(0, 100 - d - r) : null;
     let marginStr = "—";
@@ -686,7 +716,14 @@
       <td>${marginStr}</td>
       <td class="muted">${p.sample ? p.sample.toLocaleString() : "—"}</td>
     </tr>`;
-  });
+  }
+
+  let _gbSearchTerm = "";
+  function getFilteredRows() {
+    const q = _gbSearchTerm.toLowerCase();
+    const filtered = q ? sorted.filter(p => (p.pollster || "").toLowerCase().includes(q)) : sorted;
+    return filtered.map(buildRow);
+  }
 
   const THEAD = `<colgroup>
     <col class="col-date"><col class="col-pollster"><col class="col-dem">
@@ -699,14 +736,15 @@
 
   let currentPage = 1;
 
-  function getPerPage() {
+  function getPerPage(rows) {
     const v = perPageSelect.value;
-    return v === "all" ? rowHTMLs.length : parseInt(v, 10);
+    return v === "all" ? rows.length : parseInt(v, 10);
   }
 
   function renderPage(page) {
-    const pp = getPerPage();
-    const totalPages = Math.ceil(rowHTMLs.length / pp);
+    const rowHTMLs = getFilteredRows();
+    const pp = getPerPage(rowHTMLs);
+    const totalPages = Math.ceil(rowHTMLs.length / pp) || 1;
     currentPage = Math.max(1, Math.min(page, totalPages));
 
     const start = (currentPage - 1) * pp;
@@ -755,6 +793,13 @@
     if (next) next.addEventListener("click", () => renderPage(currentPage + 1));
   }
 
+  const gbSearchInput = document.getElementById("gb-pollster-search");
+  if (gbSearchInput) {
+    gbSearchInput.addEventListener("input", () => {
+      _gbSearchTerm = gbSearchInput.value;
+      renderPage(1);
+    });
+  }
   perPageSelect.addEventListener("change", () => renderPage(1));
   renderPage(1);
 })();
@@ -775,6 +820,7 @@
     viewGeneric.style.display  = "";
     viewApproval.style.display = "none";
     pageTitle.textContent = "Generic Ballot Polling Average";
+    window.POLL_AVERAGE && window.POLL_AVERAGE.update();
   });
 
   tabApproval.addEventListener("click", () => {
@@ -784,6 +830,7 @@
     viewApproval.style.display = "";
     pageTitle.textContent = "Trump Approval Rating";
     renderApprovalView();
+    window._reRenderApprGraph && window._reRenderApprGraph();
   });
 })();
 
@@ -841,6 +888,7 @@
     function reRenderApprGraph() {
       renderApprovalGraph(polls, BW, SMOOTH_N, _apprStartMs, _apprTwoParty);
     }
+    window._reRenderApprGraph = reRenderApprGraph;
 
     refreshApprHero();
     reRenderApprGraph();
@@ -878,7 +926,7 @@
 
     // Table
     const sorted = [...polls].sort((a, b) => b.date.localeCompare(a.date));
-    const rowHTMLs = sorted.map(p => {
+    function buildApprRow(p) {
       const a = p.approve, d = p.disapprove;
       const und = Math.max(0, 100 - a - d);
       const net = a - d;
@@ -896,7 +944,13 @@
         <td>${netStr}</td>
         <td class="muted">${p.sample ? p.sample.toLocaleString() : "—"}</td>
       </tr>`;
-    });
+    }
+    let _apprSearchTerm = "";
+    function getApprFilteredRows() {
+      const q = _apprSearchTerm.toLowerCase();
+      const filtered = q ? sorted.filter(p => (p.pollster || "").toLowerCase().includes(q)) : sorted;
+      return filtered.map(buildApprRow);
+    }
 
     const THEAD = `<colgroup>
       <col class="col-date"><col class="col-pollster"><col class="col-dem">
@@ -912,13 +966,14 @@
     const ppSelect  = document.getElementById("appr-per-page-select");
     let curPage = 1;
 
-    function getPerPage() {
+    function getPerPage(rows) {
       const v = ppSelect.value;
-      return v === "all" ? rowHTMLs.length : parseInt(v, 10);
+      return v === "all" ? rows.length : parseInt(v, 10);
     }
     function renderPage(page) {
-      const pp = getPerPage();
-      const totalPages = Math.ceil(rowHTMLs.length / pp);
+      const rowHTMLs = getApprFilteredRows();
+      const pp = getPerPage(rowHTMLs);
+      const totalPages = Math.ceil(rowHTMLs.length / pp) || 1;
       curPage = Math.max(1, Math.min(page, totalPages));
       const slice = rowHTMLs.slice((curPage - 1) * pp, curPage * pp);
       tableDiv.innerHTML = `<table>${THEAD}<tbody>${slice.join("")}</tbody></table>`;
@@ -946,6 +1001,13 @@
       const next = document.getElementById("appr-next");
       if (prev) prev.addEventListener("click", () => renderPage(curPage - 1));
       if (next) next.addEventListener("click", () => renderPage(curPage + 1));
+    }
+    const apprSearchInput = document.getElementById("appr-pollster-search");
+    if (apprSearchInput) {
+      apprSearchInput.addEventListener("input", () => {
+        _apprSearchTerm = apprSearchInput.value;
+        renderPage(1);
+      });
     }
     ppSelect.addEventListener("change", () => renderPage(1));
     renderPage(1);
@@ -997,9 +1059,10 @@
     const xS = ms => PL + ((ms - minMs) / msRange) * pw;
     const yS = v  => PT + (1 - (v - yMin) / yRange) * ph;
 
+    const N = Math.max(SMOOTH_N, Math.round(msRange / 86400000));
     function gaussSmooth(valFn) {
-      return Array.from({ length: SMOOTH_N + 1 }, (_, i) => {
-        const ms = minMs + (msRange * i) / SMOOTH_N;
+      return Array.from({ length: N + 1 }, (_, i) => {
+        const ms = minMs + (msRange * i) / N;
         let ws = 0, wvs = 0;
         for (const p of pts) {
           const z = (p.ms - ms) / BW;
@@ -1011,7 +1074,6 @@
     }
     const apprCurve  = gaussSmooth(p => p.appr);
     const disappCurve = gaussSmooth(p => p.disap);
-    const N = SMOOTH_N;
 
     function curvePath(curve, color) {
       const d = curve.map((c, i) => `${i===0?"M":"L"}${xS(c.ms).toFixed(1)},${yS(c.v).toFixed(1)}`).join(" ");
