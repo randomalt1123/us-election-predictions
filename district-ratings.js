@@ -308,6 +308,7 @@ function runDistrictRatingsWhenReady() {
 }
 
 runDistrictRatingsWhenReady();
+window.RATING_COLORS = RATING_COLORS;
 window.applyDistrictRatings = applyDistrictRatings;
 window.applyUniformSwingModel = applyUniformSwingModel;
 window.applyDistrictRatingsFromArrays = applyDistrictRatingsFromArrays;
