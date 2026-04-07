@@ -1,5 +1,7 @@
 {
   "NO_ELECTION": ["AZ","CA","CT","HI","IN","MD","MO","ND","NV","NY","PA","UT","VT","WA","WI"],
+  "NOT_UP_D": 34,
+  "NOT_UP_R": 31,
   "SAFE_D": ["CO","DE","IL","MA","NJ","NM","OR","RI","VA"],
   "LIKELY_D": ["MN","NH","NC"],
   "LEAN_D": ["GA","ME","MI","AK"],

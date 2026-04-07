@@ -166,6 +166,7 @@ function marginToRating(m) {
 
 function setPathFillForRating(path, code, rating) {
   path.dataset.district = code;
+  path.dataset.rating = rating;
   const color = RATING_COLORS[rating];
   if (!color) return;
   path.style.setProperty("fill", color, "important");
@@ -196,6 +197,7 @@ function applyUniformSwingModel(inputMargin) {
     const rating = marginToRating(projected);
     setPathFillForRating(path, code, rating);
   });
+  queueMicrotask(() => window.updateSeatCounts?.());
 }
 
 function applyDistrictRatingsFromArrays() {
@@ -221,6 +223,7 @@ function applyDistrictRatings() {
   } else {
     applyDistrictRatingsFromArrays();
   }
+  queueMicrotask(() => window.updateSeatCounts?.());
 }
 
 let _pollControlsWired = false;

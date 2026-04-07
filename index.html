@@ -5,24 +5,15 @@
   <title>Congressional Districts</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
+    /* Overwritten at runtime to match #top-bar’s real height (content can wrap). */
+    :root { --top-bar-h: 48px; }
     body { margin: 0; position: relative; }
     #map { height: 100vh; }
 
-    .info {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      padding: 8px 12px;
-      background: white;
-      border-radius: 4px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.2);
-      font-family: sans-serif;
-      z-index: 1000;
-    }
 
     .poll-panel {
       position: fixed;
-      top: 10px;
+      top: calc(var(--top-bar-h) + 10px);
       left: 10px;
       z-index: 1000;
       max-width: 280px;
@@ -72,7 +63,7 @@
     .swing-btn:hover { background: #e8e8e8; }
     .poll-avg-panel {
       position: fixed;
-      top: 10px;
+      top: calc(var(--top-bar-h) + 10px);
       right: 10px;
       z-index: 1000;
       font-family: sans-serif;
@@ -167,6 +158,105 @@
     }
     body.dark-mode .poll-detail-link { color: #90b4f8; }
     body.dark-mode .poll-detail-link:hover { color: #c0d4ff; }
+    .top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1100;
+      background: #ffffff;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.12);
+      display: flex;
+      justify-content: center;
+      box-sizing: border-box;
+    }
+    .top-bar-inner {
+      width: 100%;
+      max-width: 720px;
+      padding: 4px 16px;
+      box-sizing: border-box;
+    }
+    .seat-counts {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2px;
+    }
+    .seat-count {
+      font-size: clamp(14px, 1.5vw, 20px);
+      font-weight: 900;
+    }
+    .seat-count.dem { color: #1e40af; }
+    .seat-count.rep { color: #b91c1c; }
+    .seat-label {
+      font-size: clamp(9px, 0.85vw, 12px);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: rgba(0,0,0,0.4);
+    }
+    .seat-tier-bar {
+      display: flex;
+      height: 8px;
+      border-radius: 3px;
+      overflow: hidden;
+      background: #e5e7eb;
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+    .seat-tier {
+      flex: 0 0 auto;
+      min-width: 0;
+      transition: width 0.35s ease, filter 0.12s;
+      box-sizing: border-box;
+      cursor: default;
+    }
+    .seat-tier:hover { filter: brightness(1.1); position: relative; z-index: 2; box-shadow: 0 0 0 1px rgba(0,0,0,0.2); }
+
+    .tier-tooltip {
+      display: none;
+      position: fixed;
+      z-index: 1200;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-family: sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+      pointer-events: none;
+      background: #1e1e1e;
+      color: #f0f0f0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .tier-tooltip::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: #1e1e1e;
+    }
+
+    body.dark-mode .top-bar {
+      background: #1a1a1a;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+    body.dark-mode .seat-count.dem { color: #60a5fa; }
+    body.dark-mode .seat-count.rep { color: #f87171; }
+    body.dark-mode .seat-label { color: rgba(255,255,255,0.45); }
+    body.dark-mode .seat-tier-bar {
+      background: #2a2a2a;
+      border-color: rgba(255,255,255,0.12);
+    }
+    body.dark-mode .seat-tier:hover { box-shadow: 0 0 0 1px rgba(255,255,255,0.35); }
+    body.dark-mode .tier-tooltip {
+      background: #f0f0f0;
+      color: #1a1a1a;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    body.dark-mode .tier-tooltip::after {
+      border-top-color: #f0f0f0;
+    }
     .mode-toggle {
       display: flex;
       gap: 0;
@@ -253,14 +343,23 @@
       border: 1px solid #555;
     }
 
-    body.dark-mode #info {
-      background: #1e1e1e;
-      color: #e0e0e0;
-      box-shadow: 0 0 10px rgba(0,0,0,0.5);
-    }
   </style>
 </head>
-<body>
+<body class="dark-mode">
+
+<div id="top-bar" class="top-bar">
+  <div class="top-bar-inner">
+    <div class="seat-composition">
+      <div class="seat-counts">
+        <span class="seat-count dem" id="seat-count-dem">—</span>
+        <span class="seat-label" id="seat-label">House</span>
+        <span class="seat-count rep" id="seat-count-rep">—</span>
+      </div>
+      <div class="seat-tier-bar" id="seat-tier-bar" role="img" aria-label="Seat breakdown by rating"></div>
+    </div>
+  </div>
+</div>
+<div class="tier-tooltip" id="tier-tooltip"></div>
 
 <button type="button" id="dark-toggle" class="dark-toggle" title="Toggle dark mode">&#9790;</button>
 
@@ -922,7 +1021,7 @@
   </div>
 </div>
 
-<div id="info">Hover over a district</div>
+<div id="info" style="display:none"></div>
 
 
 <script src="district-2024-baseline.js"></script>
@@ -942,7 +1041,8 @@
   #map-container {
   position: relative;
   width: 100%;
-  height: 100vh;
+  height: calc(100vh - var(--top-bar-h));
+  margin-top: var(--top-bar-h);
   overflow: hidden;
   background: #f5f5f5;
   touch-action: none;
@@ -1035,9 +1135,11 @@ body.dark-mode #us-map path.senate-state {
     if (btn) btn.innerHTML = on ? "&#9788;" : "&#9790;";
   }
   var saved = localStorage.getItem(KEY);
-  if (saved === "1") apply(true);
+  if (saved === "0") apply(false);
+  else apply(true);
   document.addEventListener("DOMContentLoaded", function() {
-    if (saved === "1") apply(true);
+    if (saved === "0") apply(false);
+    else apply(true);
     document.getElementById("dark-toggle").addEventListener("click", function() {
       var on = !document.body.classList.contains("dark-mode");
       apply(on);
@@ -1051,12 +1153,131 @@ body.dark-mode #us-map path.senate-state {
 <script>
 (function() {
   document.addEventListener("DOMContentLoaded", function() {
+    (function syncTopBarHeight() {
+      var bar = document.getElementById("top-bar");
+      if (!bar) return;
+      function setVar() {
+        var h = Math.ceil(bar.getBoundingClientRect().height);
+        document.documentElement.style.setProperty("--top-bar-h", h + "px");
+      }
+      if (typeof ResizeObserver !== "undefined") {
+        new ResizeObserver(setVar).observe(bar);
+      }
+      window.addEventListener("resize", setVar);
+      requestAnimationFrame(function() {
+        requestAnimationFrame(setVar);
+      });
+    })();
+
     var sel = document.getElementById("map-select");
     var houseControls = document.getElementById("house-controls");
     var houseGroup = document.getElementById("districts");
     var senateGroup = document.getElementById("senate-states");
-    var infoDiv = document.getElementById("info");
     var pollAvgPanel = document.getElementById("poll-avg-panel");
+
+    function COLORS(key) { return (window.RATING_COLORS || {})[key]; }
+    var TIER_ORDER_HOUSE = ["safe-d", "likely-d", "lean-d", "tossup", "lean-r", "likely-r", "safe-r"];
+    var TIER_ORDER_SENATE = ["not-up-d", "safe-d", "likely-d", "lean-d", "tossup", "lean-r", "likely-r", "safe-r", "not-up-r"];
+    var TIER_LABELS = {
+      "not-up-d": "Not on ballot (D-held)",
+      "safe-d": "Safe D",
+      "likely-d": "Likely D",
+      "lean-d": "Lean D",
+      tossup: "Toss-up",
+      "lean-r": "Lean R",
+      "likely-r": "Likely R",
+      "safe-r": "Safe R",
+      "not-up-r": "Not on ballot (R-held)",
+    };
+
+    function countHouseByTier() {
+      var o = { "safe-d": 0, "likely-d": 0, "lean-d": 0, tossup: 0, "lean-r": 0, "likely-r": 0, "safe-r": 0 };
+      document.querySelectorAll("#districts path.district").forEach(function(p) {
+        var r = p.dataset.rating;
+        if (r && o[r] !== undefined) o[r]++;
+      });
+      return o;
+    }
+
+    var tooltip = document.getElementById("tier-tooltip");
+    function _showTip(e) {
+      var text = this.dataset.tip;
+      if (!text) return;
+      tooltip.textContent = text;
+      tooltip.style.display = "block";
+      var r = this.getBoundingClientRect();
+      var tw = tooltip.offsetWidth;
+      tooltip.style.left = Math.max(4, r.left + r.width / 2 - tw / 2) + "px";
+      tooltip.style.top = (r.top - 30) + "px";
+    }
+    function _hideTip() { tooltip.style.display = "none"; }
+
+    function renderTierBar(container, order, counts, total, colorMap) {
+      container.innerHTML = "";
+      order.forEach(function(key) {
+        var n = counts[key] || 0;
+        var pct = total > 0 ? (n / total * 100) : 0;
+        var seg = document.createElement("div");
+        seg.className = "seat-tier";
+        seg.style.width = pct + "%";
+        seg.style.backgroundColor = colorMap[key] || "#666";
+        seg.dataset.tip = TIER_LABELS[key] + ": " + n + " seat" + (n !== 1 ? "s" : "");
+        seg.addEventListener("mouseenter", _showTip);
+        seg.addEventListener("mouseleave", _hideTip);
+        container.appendChild(seg);
+      });
+    }
+
+    function updateSeatCounts() {
+      var isSenate = sel.value === "senate";
+      var tierBar = document.getElementById("seat-tier-bar");
+
+      if (isSenate) {
+        var br = window.getSenateTierBreakdown ? window.getSenateTierBreakdown() : null;
+        if (!br) { setTimeout(updateSeatCounts, 300); return; }
+        var demCount = (br["not-up-d"] || 0) + br["safe-d"] + br["likely-d"] + br["lean-d"];
+        var repCount = (br["not-up-r"] || 0) + br["lean-r"] + br["likely-r"] + br["safe-r"];
+        var toss = br.tossup;
+        document.getElementById("seat-count-dem").textContent = demCount;
+        document.getElementById("seat-count-rep").textContent = repCount;
+        document.getElementById("seat-label").textContent =
+          "Senate (D / R)" + (toss ? " · " + toss + " toss-up" : "");
+        renderTierBar(tierBar, TIER_ORDER_SENATE, br, 100, {
+          "not-up-d": "rgb(16, 38, 84)",
+          "safe-d": COLORS("safe-d"),
+          "likely-d": COLORS("likely-d"),
+          "lean-d": COLORS("lean-d"),
+          tossup: COLORS("tossup"),
+          "lean-r": COLORS("lean-r"),
+          "likely-r": COLORS("likely-r"),
+          "safe-r": COLORS("safe-r"),
+          "not-up-r": "rgb(120, 18, 26)",
+        });
+
+      } else {
+        var hc = countHouseByTier();
+        var total = 435;
+        var demCount = hc["safe-d"] + hc["likely-d"] + hc["lean-d"];
+        var repCount = hc["lean-r"] + hc["likely-r"] + hc["safe-r"];
+        var toss = hc.tossup;
+        document.getElementById("seat-count-dem").textContent = demCount;
+        document.getElementById("seat-count-rep").textContent = repCount;
+        document.getElementById("seat-label").textContent =
+          "House (D / R)" + (toss ? " · " + toss + " toss-up" : "");
+        renderTierBar(tierBar, TIER_ORDER_HOUSE, hc, total, {
+          "safe-d": COLORS("safe-d"),
+          "likely-d": COLORS("likely-d"),
+          "lean-d": COLORS("lean-d"),
+          tossup: COLORS("tossup"),
+          "lean-r": COLORS("lean-r"),
+          "likely-r": COLORS("likely-r"),
+          "safe-r": COLORS("safe-r"),
+        });
+      }
+    }
+
+    window.updateSeatCounts = updateSeatCounts;
+    setTimeout(updateSeatCounts, 500);
 
     sel.addEventListener("change", function() {
       var isSenate = sel.value === "senate";
@@ -1064,14 +1285,11 @@ body.dark-mode #us-map path.senate-state {
       houseControls.style.display = isSenate ? "none" : "";
       houseGroup.style.display = isSenate ? "none" : "";
       senateGroup.style.display = isSenate ? "" : "none";
-      // generic ballot widget stays visible on both maps
 
       if (isSenate) {
-        infoDiv.textContent = "Hover over a state";
         if (window.applySenateRatings) window.applySenateRatings();
-      } else {
-        infoDiv.textContent = "Hover over a district";
       }
+      setTimeout(updateSeatCounts, 100);
     });
   });
 })();
