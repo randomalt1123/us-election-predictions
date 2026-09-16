@@ -1,0 +1,25 @@
+{
+  "name": "us-election-predictions",
+  "version": "1.0.0",
+  "description": "",
+  "main": "district-2024-baseline.js",
+  "scripts": {
+    "dev": "vite",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/randomalt1123/us-election-predictions.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/randomalt1123/us-election-predictions/issues"
+  },
+  "homepage": "https://github.com/randomalt1123/us-election-predictions#readme",
+  "dependencies": {
+    "vite": "^8.3.0"
+  }
+}
