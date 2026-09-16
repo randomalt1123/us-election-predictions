@@ -39,6 +39,12 @@
       const state = (path.dataset.state || "").toUpperCase();
       const rating = _ratingMap.get(state);
       path.dataset.rating = rating || "";
+      const raceMargin = window.getRace?.(state)?.margin;
+      if (raceMargin == null || !Number.isFinite(Number(raceMargin))) {
+        delete path.dataset.projectedMargin;
+      } else {
+        path.dataset.projectedMargin = String(Number(raceMargin));
+      }
       if (rating === "no-election") {
         path.style.fill = "#d4d4d4";
         path.style.fillOpacity = "0.18";

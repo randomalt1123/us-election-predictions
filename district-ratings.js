@@ -164,9 +164,14 @@ function marginToRating(m) {
   return "tossup";
 }
 
-function setPathFillForRating(path, code, rating) {
+function setPathFillForRating(path, code, rating, projectedMargin) {
   path.dataset.district = code;
   path.dataset.rating = rating;
+  if (projectedMargin == null || !Number.isFinite(Number(projectedMargin))) {
+    delete path.dataset.projectedMargin;
+  } else {
+    path.dataset.projectedMargin = String(Number(projectedMargin));
+  }
   const color = RATING_COLORS[rating];
   if (!color) return;
   path.style.setProperty("fill", color, "important");
@@ -195,7 +200,7 @@ function applyUniformSwingModel(inputMargin) {
     if (base === undefined) return;
     const projected = Math.max(-100, Math.min(100, base + shift));
     const rating = marginToRating(projected);
-    setPathFillForRating(path, code, rating);
+    setPathFillForRating(path, code, rating, projected);
   });
   queueMicrotask(() => window.updateSeatCounts?.());
 }
@@ -208,7 +213,8 @@ function applyDistrictRatingsFromArrays() {
     const code = displayLabelToCode(rawLabel);
     if (!code) return;
     const rating = ratingById.get(code) ?? "tossup";
-    setPathFillForRating(path, code, rating);
+    const raceMargin = window.getRace?.(code)?.margin;
+    setPathFillForRating(path, code, rating, raceMargin);
   });
 }
 
@@ -315,3 +321,5 @@ window.RATING_COLORS = RATING_COLORS;
 window.applyDistrictRatings = applyDistrictRatings;
 window.applyUniformSwingModel = applyUniformSwingModel;
 window.applyDistrictRatingsFromArrays = applyDistrictRatingsFromArrays;
+window.displayLabelToCode = displayLabelToCode;
+window.labelFromPath = labelFromPath;

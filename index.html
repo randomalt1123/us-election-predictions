@@ -257,6 +257,91 @@
     body.dark-mode .tier-tooltip::after {
       border-top-color: #f0f0f0;
     }
+
+    .map-tooltip {
+      display: none;
+      position: fixed;
+      z-index: 1300;
+      min-width: 180px;
+      max-width: 260px;
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-family: sans-serif;
+      pointer-events: none;
+      background: #1e1e1e;
+      color: #f0f0f0;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .map-tooltip.is-visible { display: block; }
+    .map-tip-name {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      margin-bottom: 8px;
+      line-height: 1.25;
+    }
+    .map-tip-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      font-size: 12px;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+    }
+    .map-tip-label { color: rgba(255,255,255,0.55); font-weight: 500; }
+    .map-tip-value { font-weight: 700; color: #f0f0f0; }
+    .map-tip-candidates {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .map-tip-cand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+    }
+    .map-tip-party {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+    .map-tip-cand.dem .map-tip-party { background: #1e40af; color: #fff; }
+    .map-tip-cand.rep .map-tip-party { background: #b91c1c; color: #fff; }
+    .map-tip-cand.ind .map-tip-party { background: #6b7280; color: #fff; }
+    .map-tip-cand.other .map-tip-party { background: #4b5563; color: #fff; }
+    .map-tip-cand-name {
+      color: rgba(255,255,255,0.85);
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .map-tip-empty {
+      font-size: 12px;
+      color: rgba(255,255,255,0.45);
+      font-style: italic;
+    }
+    body.dark-mode .map-tooltip {
+      background: #f4f4f5;
+      color: #18181b;
+      border-color: rgba(0,0,0,0.08);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    }
+    body.dark-mode .map-tip-label { color: rgba(0,0,0,0.45); }
+    body.dark-mode .map-tip-value { color: #18181b; }
+    body.dark-mode .map-tip-row { border-bottom-color: rgba(0,0,0,0.1); }
+    body.dark-mode .map-tip-cand-name { color: rgba(0,0,0,0.75); }
+    body.dark-mode .map-tip-empty { color: rgba(0,0,0,0.4); }
     .mode-toggle {
       display: flex;
       gap: 0;
@@ -1021,10 +1106,18 @@
   </div>
 </div>
 
-<div id="info" style="display:none"></div>
+<div id="map-tooltip" class="map-tooltip" role="tooltip" aria-hidden="true">
+  <div class="map-tip-name" id="map-tip-name"></div>
+  <div class="map-tip-row">
+    <span class="map-tip-label">Projected margin</span>
+    <span class="map-tip-value" id="map-tip-margin">—</span>
+  </div>
+  <div class="map-tip-candidates" id="map-tip-candidates"></div>
+</div>
 
 
 <script src="district-2024-baseline.js"></script>
+<script src="district-races.js"></script>
 <script src="polls.js"></script>
 <script src="poll-average.js"></script>
 <script src="district-ratings.js"></script>
