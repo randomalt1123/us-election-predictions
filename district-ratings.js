@@ -251,7 +251,7 @@ function wirePollControls() {
     manualBtn.classList.add("active");
     swingBtn.classList.remove("active");
     if (swingControls) swingControls.style.display = "none";
-    applyDistrictRatingsFromArrays();
+    applyDistrictRatings();
   });
 
   swingBtn.addEventListener("click", () => {
