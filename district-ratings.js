@@ -1,7 +1,11 @@
 /**
- * Per-district ratings: ids like VA-01, VT-AL.
- * Default map: uniform swing from HOUSE_2024_BASELINE (district-2024-baseline.js) —
- * enter generic ballot Dem % (two-party); all CDs shift by (poll − 2024 national).
+ * Per-district ratings derived from projected D−R margin:
+ *   |m| < 0.05 → treated as D+0.1 (lean D; no toss-ups)
+ *   0.05–4.9   → lean
+ *   5–14.9     → likely
+ *   15+        → safe
+ *
+ * Projection: 2024 baseline + (generic ballot − 2024 national) + WAR.
  * Fallback arrays (SAFE_D, …) apply only if baseline is missing.
  */
 const RATING_COLORS = {
@@ -150,18 +154,17 @@ function marginFromDPct(dPct) {
 }
 
 function marginToRating(m) {
-  if (m > 0) {
-    if (m >= 15) return "safe-d";
-    if (m >= 8) return "likely-d";
+  let x = Number(m);
+  if (!Number.isFinite(x) || Math.abs(x) < 0.05) x = 0.1; // EVEN → slight Dem lean
+  const abs = Math.abs(x);
+  if (x > 0) {
+    if (abs >= 15) return "safe-d";
+    if (abs >= 5) return "likely-d";
     return "lean-d";
   }
-  if (m < 0) {
-    const x = -m;
-    if (x >= 15) return "safe-r";
-    if (x >= 8) return "likely-r";
-    return "lean-r";
-  }
-  return "tossup";
+  if (abs >= 15) return "safe-r";
+  if (abs >= 5) return "likely-r";
+  return "lean-r";
 }
 
 function setPathFillForRating(path, code, rating, projectedMargin) {
@@ -179,8 +182,9 @@ function setPathFillForRating(path, code, rating, projectedMargin) {
 }
 
 /**
- * Uniform swing: projectedMargin = districtMargin + (inputMargin − nationalMargin).
- * inputMargin is the D−R margin the user enters (positive = D lead).
+ * Uniform / projected swing:
+ *   projected = 2024District + (nationalMargin − 2024National) + WAR
+ * nationalMargin is D−R (positive = D lead). Full swing, no damping.
  */
 function applyUniformSwingModel(inputMargin) {
   const b = window.HOUSE_2024_BASELINE;
@@ -198,11 +202,26 @@ function applyUniformSwingModel(inputMargin) {
     if (!code) return;
     const base = b.marginById[code];
     if (base === undefined) return;
-    const projected = Math.max(-100, Math.min(100, base + shift));
+    const war = window.getDistrictWar?.(code) ?? 0;
+    let projected = Math.max(-100, Math.min(100, base + shift + war));
+    if (Math.abs(projected) < 0.05) projected = 0.1; // EVEN → D+0.1
     const rating = marginToRating(projected);
     setPathFillForRating(path, code, rating, projected);
   });
   queueMicrotask(() => window.updateSeatCounts?.());
+}
+
+/** Forecast mode: same formula using the live generic-ballot average + WAR. */
+function applyProjectedModel() {
+  const b = window.HOUSE_2024_BASELINE;
+  if (!b || !b.marginById) {
+    applyDistrictRatingsFromArrays();
+    return;
+  }
+  const avg = window.POLL_AVERAGE?.getAvg?.();
+  const national =
+    avg != null && Number.isFinite(Number(avg)) ? marginFromDPct(Number(avg)) : b.nationalMargin;
+  applyUniformSwingModel(national);
 }
 
 function applyDistrictRatingsFromArrays() {
@@ -213,7 +232,7 @@ function applyDistrictRatingsFromArrays() {
     const code = displayLabelToCode(rawLabel);
     if (!code) return;
     const rating = ratingById.get(code) ?? "tossup";
-    const raceMargin = window.getRace?.(code)?.margin;
+    const raceMargin = window.computeProjectedMargin?.(code) ?? window.getRace?.(code)?.margin;
     setPathFillForRating(path, code, rating, raceMargin);
   });
 }
@@ -226,6 +245,8 @@ function applyDistrictRatings() {
     const v = input ? parseFloat(String(input.value).replace(",", ".")) : NaN;
     const margin = Number.isFinite(v) ? v : window.HOUSE_2024_BASELINE.nationalMargin;
     applyUniformSwingModel(margin);
+  } else if (window.HOUSE_2024_BASELINE?.marginById) {
+    applyProjectedModel();
   } else {
     applyDistrictRatingsFromArrays();
   }
@@ -301,6 +322,17 @@ function wirePollControls() {
   }
 
   window.POLL_AVERAGE?.update();
+
+  // Recompute Forecast when the generic-ballot average refreshes.
+  if (window.POLL_AVERAGE && !window.POLL_AVERAGE._projectionHooked) {
+    const prev = window.POLL_AVERAGE.update.bind(window.POLL_AVERAGE);
+    window.POLL_AVERAGE.update = function (...args) {
+      const result = prev(...args);
+      if (_currentMode === "manual") applyDistrictRatings();
+      return result;
+    };
+    window.POLL_AVERAGE._projectionHooked = true;
+  }
 }
 
 function runDistrictRatingsWhenReady() {
@@ -308,7 +340,13 @@ function runDistrictRatingsWhenReady() {
     wirePollControls();
     applyDistrictRatings();
   };
-  const init = () => _loadRatingsFromJSON().then(run);
+  // Prefer projected margins; JSON ratings are only a fallback if baseline is missing.
+  const init = () => {
+    const p = window.HOUSE_2024_BASELINE?.marginById
+      ? Promise.resolve()
+      : _loadRatingsFromJSON();
+    return Promise.resolve(p).then(run);
+  };
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);
   } else {
@@ -320,6 +358,7 @@ runDistrictRatingsWhenReady();
 window.RATING_COLORS = RATING_COLORS;
 window.applyDistrictRatings = applyDistrictRatings;
 window.applyUniformSwingModel = applyUniformSwingModel;
+window.applyProjectedModel = applyProjectedModel;
 window.applyDistrictRatingsFromArrays = applyDistrictRatingsFromArrays;
 window.displayLabelToCode = displayLabelToCode;
 window.labelFromPath = labelFromPath;

@@ -191,8 +191,8 @@
       letter-spacing: 0.6px;
     }
     /* fixed column widths so layout never shifts between pages */
-    col.col-date    { width: 13%; }
-    col.col-pollster{ width: 45%; }
+    col.col-date    { width: 16%; }
+    col.col-pollster{ width: 42%; }
     col.col-dem     { width: 7%; }
     col.col-rep     { width: 7%; }
     col.col-und     { width: 7%; }
@@ -206,6 +206,24 @@
     td {
       padding: 8px 10px;
       border-bottom: 1px solid #f0f0f0;
+    }
+    td.col-date-cell {
+      white-space: nowrap;
+    }
+    td.col-pollster-cell {
+      max-width: 0; /* required for clamp with table-layout:fixed */
+      overflow: hidden;
+      vertical-align: middle;
+    }
+    td.col-pollster-cell .pollster-text {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 1;
+      overflow: hidden;
+      word-break: break-word;
+    }
+    td.col-pollster-cell:hover .pollster-text {
+      -webkit-line-clamp: 2;
     }
     tr:last-child td { border-bottom: none; }
     .dem-col { color: #1e3a8a; font-weight: 700; }
@@ -707,9 +725,13 @@
     const undCell = und !== null
       ? `<td class="und-col">${und.toFixed(0)}%</td>`
       : `<td class="und-col"><span class="muted">—</span></td>`;
+    const pollster = p.pollster || "";
+    const pollsterCell = pollster
+      ? `<td class="col-pollster-cell"><span class="pollster-text">${pollster}</span></td>`
+      : `<td class="col-pollster-cell"><span class="muted">—</span></td>`;
     return `<tr>
-      <td>${p.date || "—"}</td>
-      <td>${p.pollster || '<span class="muted">—</span>'}</td>
+      <td class="col-date-cell">${p.date || "—"}</td>
+      ${pollsterCell}
       <td class="dem-col">${isFinite(d) ? d + "%" : "—"}</td>
       <td class="rep-col">${isFinite(r) ? r + "%" : "—"}</td>
       ${undCell}
@@ -935,9 +957,13 @@
         : net < 0
           ? `<span style="color:#b91c1c;font-weight:700">${net}</span>`
           : `<span class="muted">EVEN</span>`;
+      const pollster = p.pollster || "";
+      const pollsterCell = pollster
+        ? `<td class="col-pollster-cell"><span class="pollster-text">${pollster}</span></td>`
+        : `<td class="col-pollster-cell"><span class="muted">—</span></td>`;
       return `<tr>
-        <td>${p.date}</td>
-        <td>${p.pollster || '<span class="muted">—</span>'}</td>
+        <td class="col-date-cell">${p.date}</td>
+        ${pollsterCell}
         <td style="color:#15803d;font-weight:700">${a}%</td>
         <td style="color:#b91c1c;font-weight:700">${d}%</td>
         <td class="und-col">${und.toFixed(0)}%</td>
