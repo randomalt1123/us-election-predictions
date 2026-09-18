@@ -5,7 +5,7 @@
  *   5–14.9     → likely
  *   15+        → safe
  *
- * Projection: 2024 baseline + (generic ballot − 2024 national) + WAR.
+ * Projection: 2024 baseline + 0.75×(generic ballot − 2024 national) + WAR.
  * Fallback arrays (SAFE_D, …) apply only if baseline is missing.
  */
 const RATING_COLORS = {
@@ -183,10 +183,11 @@ function setPathFillForRating(path, code, rating, projectedMargin) {
 
 /**
  * Uniform / projected swing:
- *   projected = 2024District + (nationalMargin − 2024National) + WAR
- * nationalMargin is D−R (positive = D lead). Full swing, no damping.
+ *   projected = 2024District + elasticity×(nationalMargin − 2024National) + WAR
+ * Forecast elasticity defaults inside computeProjectedMargin (0.75).
+ * Manual Shift mode passes elasticity = 1 (full entered swing).
  */
-function applyUniformSwingModel(inputMargin) {
+function applyUniformSwingModel(inputMargin, opts) {
   const b = window.HOUSE_2024_BASELINE;
   if (!b || !b.marginById) {
     applyDistrictRatingsFromArrays();
@@ -194,24 +195,27 @@ function applyUniformSwingModel(inputMargin) {
   }
   const m = Number(inputMargin);
   if (!Number.isFinite(m)) return;
-  const shift = m - b.nationalMargin;
+  const elasticity =
+    opts && opts.elasticity != null && Number.isFinite(Number(opts.elasticity))
+      ? Number(opts.elasticity)
+      : 1;
   document.querySelectorAll("#us-map path.district").forEach((path) => {
     const rawLabel = labelFromPath(path);
     if (!rawLabel) return;
     const code = displayLabelToCode(rawLabel);
     if (!code) return;
-    const base = b.marginById[code];
-    if (base === undefined) return;
-    const war = window.getDistrictWar?.(code) ?? 0;
-    let projected = Math.max(-100, Math.min(100, base + shift + war));
-    if (Math.abs(projected) < 0.05) projected = 0.1; // EVEN → D+0.1
+    const projected = window.computeProjectedMargin?.(code, {
+      nationalMargin: m,
+      elasticity,
+    });
+    if (projected == null || !Number.isFinite(Number(projected))) return;
     const rating = marginToRating(projected);
     setPathFillForRating(path, code, rating, projected);
   });
   queueMicrotask(() => window.updateSeatCounts?.());
 }
 
-/** Forecast mode: same formula using the live generic-ballot average + WAR. */
+/** Forecast mode: damped swing from the live generic-ballot average + WAR. */
 function applyProjectedModel() {
   const b = window.HOUSE_2024_BASELINE;
   if (!b || !b.marginById) {
@@ -221,7 +225,7 @@ function applyProjectedModel() {
   const avg = window.POLL_AVERAGE?.getAvg?.();
   const national =
     avg != null && Number.isFinite(Number(avg)) ? marginFromDPct(Number(avg)) : b.nationalMargin;
-  applyUniformSwingModel(national);
+  applyUniformSwingModel(national, { elasticity: 0.75 });
 }
 
 function applyDistrictRatingsFromArrays() {

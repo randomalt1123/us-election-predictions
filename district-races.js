@@ -9,10 +9,12 @@
  *
  * Projected margin is computed (not stored):
  *   projected = 2024DistrictMargin
- *             + (genericBallotMargin − 2024NationalMargin)
+ *             + SWING_ELASTICITY × (genericBallotMargin − 2024NationalMargin)
  *             + war
  *
- * Full swing, no damping. Generic ballot comes from POLL_AVERAGE.
+ * Forecast uses SWING_ELASTICITY = 0.75 (middle ground). Manual "Shift from 2024"
+ * applies the full entered swing (elasticity = 1).
+ * Generic ballot comes from POLL_AVERAGE.
  *
  * Example:
  *   DISTRICT_RACES["AZ-01"] = ["Amish Shah", "Jay Feely", 1.5];
@@ -662,6 +664,9 @@
     return { candidates, war: _numOr(row.war, 0) };
   }
 
+  /** Fraction of national generic-ballot shift applied to each district (Forecast). */
+  const FORECAST_SWING_ELASTICITY = 0.85;
+
   function _genericBallotMargin() {
     const avg = window.POLL_AVERAGE?.getAvg?.();
     if (avg != null && Number.isFinite(Number(avg))) {
@@ -671,12 +676,49 @@
     return b && Number.isFinite(b.nationalMargin) ? b.nationalMargin : 0;
   }
 
+  function _normParty(party) {
+    const p = String(party || "O").toUpperCase();
+    if (p === "DEM" || p === "DEMOCRATIC") return "D";
+    if (p === "REP" || p === "REPUBLICAN" || p === "GOP") return "R";
+    if (p === "IND" || p === "INDEPENDENT") return "I";
+    return p;
+  }
+
   /**
-   * Non-cautious projection:
-   *   2024 district margin + (generic ballot − 2024 national) + WAR
+   * Unopposed / same-party-only races → force Safe D/R (±100).
+   * Independents cancel the exception; Green/Libertarian/other do not.
+   * Returns +100 (D), -100 (R), or null (use normal projection).
+   */
+  function unopposedSafeMargin(candidates) {
+    if (!Array.isArray(candidates) || candidates.length === 0) return null;
+    let dems = 0;
+    let reps = 0;
+    let hasIndie = false;
+    for (const c of candidates) {
+      const p = _normParty(c.party);
+      if (p === "I") hasIndie = true;
+      else if (p === "D") dems++;
+      else if (p === "R") reps++;
+    }
+    if (hasIndie) return null;
+    if (dems >= 1 && reps === 0) return 100;
+    if (reps >= 1 && dems === 0) return -100;
+    return null;
+  }
+
+  /**
+   * Cautious projection:
+   *   2024 district + elasticity × (generic ballot − 2024 national) + WAR
+   * Default elasticity is FORECAST_SWING_ELASTICITY (0.75).
+   * Unopposed / D-only or R-only (no Independent) → ±100.
    */
   function computeProjectedMargin(id, opts) {
     id = _padId(id);
+    const { base: table, overrides } = _tablesFor(id);
+    const row = overrides[id] || table[id];
+    const forced = unopposedSafeMargin(_fromRow(row).candidates);
+    if (forced != null) return forced;
+
     const b = window.HOUSE_2024_BASELINE;
     if (!b?.marginById || b.marginById[id] === undefined) return null;
     const base = Number(b.marginById[id]);
@@ -685,7 +727,11 @@
       opts && opts.nationalMargin != null && Number.isFinite(Number(opts.nationalMargin))
         ? Number(opts.nationalMargin)
         : _genericBallotMargin();
-    const shift = national - b.nationalMargin;
+    const elasticity =
+      opts && opts.elasticity != null && Number.isFinite(Number(opts.elasticity))
+        ? Number(opts.elasticity)
+        : FORECAST_SWING_ELASTICITY;
+    const shift = (national - b.nationalMargin) * elasticity;
     let projected = Math.max(-100, Math.min(100, base + shift + war));
     if (Math.abs(projected) < 0.05) projected = 0.1; // EVEN → D+0.1
     return projected;
@@ -827,6 +873,7 @@
   window.overrideDistrictRace = overrideDistrictRace;
   window.clearDistrictRaceOverride = clearDistrictRaceOverride;
   window.computeProjectedMargin = computeProjectedMargin;
+  window.unopposedSafeMargin = unopposedSafeMargin;
   window.formatRaceMargin = formatMargin;
   window.racePartyClass = partyClass;
   window.racePartyBadge = partyBadge;
