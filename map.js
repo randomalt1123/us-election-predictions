@@ -49,8 +49,49 @@ function nameFromPath(path) {
   return "";
 }
 
+function abbFromStateName(name) {
+  const decoded = decodeLabel(name);
+  if (!decoded) return null;
+  for (const [abb, full] of Object.entries(STATE_ABB_TO_NAME)) {
+    if (full === decoded) return abb;
+  }
+  return null;
+}
+
+function groupIsVisible(el) {
+  if (!el) return false;
+  return el.style.display !== "none";
+}
+
+/** Resolve the visible map path for a setInfo() label (inline handlers omit the path). */
+function pathFromLabel(name) {
+  const decoded = decodeLabel(name);
+  if (!decoded) return null;
+  const abb = abbFromStateName(decoded);
+
+  const govGroup = document.getElementById("governor-states");
+  if (abb && groupIsVisible(govGroup)) {
+    return govGroup.querySelector(`path.governor-state[data-state="${abb}"]`);
+  }
+  const senateGroup = document.getElementById("senate-states");
+  if (abb && groupIsVisible(senateGroup)) {
+    return senateGroup.querySelector(`path.senate-state[data-state="${abb}"]`);
+  }
+  const houseGroup = document.getElementById("districts");
+  if (houseGroup && houseGroup.style.display !== "none") {
+    for (const p of houseGroup.querySelectorAll("path.district")) {
+      if (nameFromPath(p) === decoded) return p;
+    }
+  }
+  return null;
+}
+
 function raceIdFromPath(path) {
   if (!path) return null;
+  if (path.classList.contains("governor-state")) {
+    const st = (path.dataset.state || "").toUpperCase();
+    return st ? "GOV-" + st : null;
+  }
   if (path.classList.contains("senate-state")) {
     return (path.dataset.state || "").toUpperCase() || null;
   }
@@ -143,8 +184,8 @@ function setInfo(name) {
     hideTip();
     return;
   }
-  // Inline onmouseenter handlers don't pass the path; mouseover handler does.
-  showTip(decodeLabel(name), null);
+  const decoded = decodeLabel(name);
+  showTip(decoded, pathFromLabel(decoded));
 }
 
 window.setInfo = setInfo;
@@ -234,18 +275,20 @@ window.addEventListener("mouseup", () => {
   container.classList.remove("is-panning");
 });
 
+const MAP_PATH_SEL = "path.district, path.senate-state, path.governor-state";
+
 svg.addEventListener("mouseover", (e) => {
   if (dragging) return;
-  const path = e.target.closest?.("path.district, path.senate-state");
+  const path = e.target.closest?.(MAP_PATH_SEL);
   if (!path || !svg.contains(path)) return;
   const name = nameFromPath(path);
   if (name) showTip(name, path);
 });
 
 svg.addEventListener("mouseout", (e) => {
-  const path = e.target.closest?.("path.district, path.senate-state");
+  const path = e.target.closest?.(MAP_PATH_SEL);
   if (!path) return;
-  const next = e.relatedTarget?.closest?.("path.district, path.senate-state");
+  const next = e.relatedTarget?.closest?.(MAP_PATH_SEL);
   if (next && svg.contains(next)) return;
   hideTip();
 });

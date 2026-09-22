@@ -598,6 +598,56 @@
     // },
   };
 
+  /** Governor races keyed by GOV-XX (state postal), same tuple / override rules. */
+  const GOVERNOR_RACES = {
+    "GOV-AL": ["Doug Jones", "Tommy Tuberville"],
+    "GOV-AK": ["Jonathan Kreiss-Tomkins", "Bernadette Wilson"],
+    "GOV-AZ": ["Katie Hobbs", "Andy Biggs"],
+    "GOV-AR": ["Fredrick Love", "Sarah Huckabee Sanders"],
+    "GOV-CA": ["Xavier Becerra", "Steve Hilton"],
+    "GOV-CO": ["Phil Weiser", "Victor Marx"],
+    "GOV-CT": ["Ned Lamont", "Ryan Fazio"],
+    "GOV-FL": ["David Jolly", "By'Rone Donalds"],
+    "GOV-GA": ["Keisha Lance Bottoms", "Rick Jackson"],
+    "GOV-HI": ["Josh Green", "Gary Cordery"],
+    "GOV-ID": ["Terri Pickens", "Brad Little"],
+    "GOV-IL": ["JB Pritzker", "Darren Bailey"],
+    "GOV-IA": ["Rob Sand", "Zach Lahn"],
+    "GOV-KS": ["Cindy Holscher", "Ty Masterson"],
+    "GOV-ME": ["Hannah Pingree", "Robert B. Charles"],
+    "GOV-MD": ["Wes Moore", "Dan Cox"],
+    "GOV-MA": ["Maura Healey", "Mike Minogue"],
+    "GOV-MI": ["Jocelyn Benson", "John James"],
+    "GOV-MN": ["Amy Klobuchar", "Lisa Demuth"],
+    "GOV-NE": ["Lynne Walz", "Jim Pillen"],
+    "GOV-NV": ["Aaron Ford", "Joe Lombardo"],
+    "GOV-NH": ["Cinde Warmington", "Kelly Ayotte"],
+    "GOV-NM": ["Deb Haaland", "Gregg Hull"],
+    "GOV-NY": ["Kathy Hochul", "Bruce Blakeman"],
+    "GOV-OH": ["Amy Acton", "Vivek Ramaswamy"],
+    "GOV-OK": ["Cyndi Munson", "Mike Mazzei"],
+    "GOV-OR": ["Tina Kotek", "Christine Drazan"],
+    "GOV-PA": ["Josh Shapiro", "Stacy Garrity"],
+    "GOV-RI": ["Helena Foulkes", "Aaron Guckian"],
+    "GOV-SC": ["Jermaine Johnson", "Alan Wilson"],
+    "GOV-SD": ["Dah Ahlers", "Larry Rhoden"],
+    "GOV-TN": ["Jerri Green", "Marsha Blackburn"],
+    "GOV-TX": ["Gina Hinojosa", "Greg Abbott"],
+    "GOV-VT": ["Amanda Janoo", "Phil Scott"],
+    "GOV-WI": ["David Crowley", "Tom Tiffany"],
+    "GOV-WY": ["Kenneth Casner", "Eric Barlow"],
+  };
+
+  const GOVERNOR_RACE_OVERRIDES = {
+    // "GOV-AZ": {
+    //   candidates: [
+    //     { name: "Incumbent", party: "D" },
+    //     { name: "Challenger", party: "R" },
+    //   ],
+    //   war: 2.0,
+    // },
+  };
+
   function _padId(id) {
     if (!id) return id;
     id = String(id).toUpperCase();
@@ -614,7 +664,14 @@
     return /^[A-Z]{2}$/.test(id);
   }
 
+  function _isGovernorId(id) {
+    return /^GOV-[A-Z]{2}$/.test(id);
+  }
+
   function _tablesFor(id) {
+    if (_isGovernorId(id)) {
+      return { base: GOVERNOR_RACES, overrides: GOVERNOR_RACE_OVERRIDES };
+    }
     return _isSenateId(id)
       ? { base: SENATE_RACES, overrides: SENATE_RACE_OVERRIDES }
       : { base: DISTRICT_RACES, overrides: DISTRICT_RACE_OVERRIDES };
@@ -894,6 +951,8 @@
   window.DISTRICT_RACE_OVERRIDES = DISTRICT_RACE_OVERRIDES;
   window.SENATE_RACES = SENATE_RACES;
   window.SENATE_RACE_OVERRIDES = SENATE_RACE_OVERRIDES;
+  window.GOVERNOR_RACES = GOVERNOR_RACES;
+  window.GOVERNOR_RACE_OVERRIDES = GOVERNOR_RACE_OVERRIDES;
   window.getRace = getRace;
   window.getDistrictWar = getDistrictWar;
   window.setDistrictWar = setDistrictWar;

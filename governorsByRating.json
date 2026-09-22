@@ -1,0 +1,10 @@
+{
+  "NO_ELECTION": ["WA", "UT", "MT", "ND", "MO", "NJ", "DE", "IN", "KY", "WV", "VA", "NC", "MS", "LA"],
+  "SAFE_D": ["CA", "HI", "NM", "CO", "MN", "IL", "MD", "PA", "NY", "CT", "RI", "MA"],
+  "LIKELY_D": ["AZ", "WI", "MI", "ME"],
+  "LEAN_D": ["OR", "AK", "IA", "GA"],
+  "TOSSUP": [],
+  "LEAN_R": ["TX", "OH", "NV"],
+  "LIKELY_R": ["NE", "KS", "AL", "FL", "NH"],
+  "SAFE_R": ["ID", "WY", "SD", "OK", "AR", "TN", "SC", "VT"]
+}
