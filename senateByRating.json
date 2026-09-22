@@ -3,10 +3,10 @@
   "NOT_UP_D": 34,
   "NOT_UP_R": 31,
   "SAFE_D": ["CO","DE","IL","MA","NJ","NM","OR","RI","VA"],
-  "LIKELY_D": ["MN","NH","NC"],
-  "LEAN_D": ["GA","ME","MI","AK"],
+  "LIKELY_D": ["MN","NH","NC","GA"],
+  "LEAN_D": ["ME","MI","AK"],
   "TOSSUP": [],
-  "LEAN_R": ["IA","OH","TX"],
-  "LIKELY_R": ["FL","MT","NE"],
-  "SAFE_R": ["AL","AR","ID","KS","KY","LA","MS","OK","SC","SD","TN","WV","WY"]
+  "LEAN_R": ["IA","OH","TX","KS"],
+  "LIKELY_R": ["FL","MT","NE","SC"],
+  "SAFE_R": ["AL","AR","KY","LA","MS","OK","SD","TN","WV","WY","ID"]
 }
