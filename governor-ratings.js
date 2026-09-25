@@ -1,30 +1,38 @@
 (function () {
   let _ratingsLoaded = false;
   let _ratingMap = null;
+  let _model = "primary";
+  const MODEL_URLS = {
+    primary: "governorsByRating.json",
+    alt: "governorsByRating-alt.json",
+  };
 
-  function _loadRatings() {
-    if (_ratingsLoaded) return Promise.resolve();
-    return fetch("governorsByRating.json")
+  function _applyData(data) {
+    _ratingMap = new Map();
+    const tiers = [
+      ["no-election", data.NO_ELECTION],
+      ["safe-d", data.SAFE_D],
+      ["likely-d", data.LIKELY_D],
+      ["lean-d", data.LEAN_D],
+      ["tossup", data.TOSSUP],
+      ["lean-r", data.LEAN_R],
+      ["likely-r", data.LIKELY_R],
+      ["safe-r", data.SAFE_R],
+    ];
+    for (const [rating, ids] of tiers) {
+      for (const id of ids || []) {
+        _ratingMap.set(id.toUpperCase(), rating);
+      }
+    }
+    _ratingsLoaded = true;
+  }
+
+  function _loadRatings(force) {
+    if (_ratingsLoaded && !force) return Promise.resolve();
+    const url = MODEL_URLS[_model] || MODEL_URLS.primary;
+    return fetch(url)
       .then(r => r.json())
-      .then(data => {
-        _ratingMap = new Map();
-        const tiers = [
-          ["no-election", data.NO_ELECTION],
-          ["safe-d", data.SAFE_D],
-          ["likely-d", data.LIKELY_D],
-          ["lean-d", data.LEAN_D],
-          ["tossup", data.TOSSUP],
-          ["lean-r", data.LEAN_R],
-          ["likely-r", data.LIKELY_R],
-          ["safe-r", data.SAFE_R],
-        ];
-        for (const [rating, ids] of tiers) {
-          for (const id of ids || []) {
-            _ratingMap.set(id.toUpperCase(), rating);
-          }
-        }
-        _ratingsLoaded = true;
-      });
+      .then(_applyData);
   }
 
   function applyGovernorRatings() {
@@ -84,6 +92,11 @@
     return out;
   }
 
+  function setGovernorRatingModel(which) {
+    _model = which === "alt" ? "alt" : "primary";
+    return _loadRatings(true).then(() => applyGovernorRatings());
+  }
+
   function init() {
     _loadRatings().then(() => applyGovernorRatings());
   }
@@ -97,4 +110,5 @@
   window.applyGovernorRatings = applyGovernorRatings;
   window.getGovernorCounts = getGovernorCounts;
   window.getGovernorTierBreakdown = getGovernorTierBreakdown;
+  window.setGovernorRatingModel = setGovernorRatingModel;
 })();

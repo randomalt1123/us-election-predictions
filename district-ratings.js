@@ -32,6 +32,10 @@ function _padDistrictId(id) {
 }
 
 let _ratingsLoaded = false;
+let _ratingModel = "primary"; // "primary" = live forecast; "alt" = strong-D environment
+/** Alt House model: heavily Dem-leaning national environment on top of the 2024 baseline. */
+const ALT_HOUSE_NATIONAL_MARGIN = 12; // D+12 world
+const ALT_HOUSE_ELASTICITY = 0.95;
 
 function _loadRatingsFromJSON() {
   return fetch("districtsByRating.json")
@@ -244,6 +248,19 @@ function applyDistrictRatingsFromArrays() {
 let _currentMode = "manual"; // "manual" | "swing"
 
 function applyDistrictRatings() {
+  if (_ratingModel === "alt") {
+    if (window.HOUSE_2024_BASELINE?.marginById) {
+      applyUniformSwingModel(ALT_HOUSE_NATIONAL_MARGIN, {
+        elasticity: ALT_HOUSE_ELASTICITY,
+      });
+    } else if (_ratingsLoaded) {
+      applyDistrictRatingsFromArrays();
+    } else {
+      return _loadRatingsFromJSON().then(() => applyDistrictRatingsFromArrays());
+    }
+    queueMicrotask(() => window.updateSeatCounts?.());
+    return;
+  }
   if (_currentMode === "swing" && window.HOUSE_2024_BASELINE?.marginById) {
     const input = document.getElementById("swing-margin-input");
     const v = input ? parseFloat(String(input.value).replace(",", ".")) : NaN;
@@ -255,6 +272,12 @@ function applyDistrictRatings() {
     applyDistrictRatingsFromArrays();
   }
   queueMicrotask(() => window.updateSeatCounts?.());
+}
+
+function setHouseRatingModel(which) {
+  _ratingModel = which === "alt" ? "alt" : "primary";
+  const result = applyDistrictRatings();
+  return Promise.resolve(result);
 }
 
 let _pollControlsWired = false;
@@ -332,7 +355,7 @@ function wirePollControls() {
     const prev = window.POLL_AVERAGE.update.bind(window.POLL_AVERAGE);
     window.POLL_AVERAGE.update = function (...args) {
       const result = prev(...args);
-      if (_currentMode === "manual") applyDistrictRatings();
+      if (_ratingModel === "primary" && _currentMode === "manual") applyDistrictRatings();
       return result;
     };
     window.POLL_AVERAGE._projectionHooked = true;
@@ -364,5 +387,6 @@ window.applyDistrictRatings = applyDistrictRatings;
 window.applyUniformSwingModel = applyUniformSwingModel;
 window.applyProjectedModel = applyProjectedModel;
 window.applyDistrictRatingsFromArrays = applyDistrictRatingsFromArrays;
+window.setHouseRatingModel = setHouseRatingModel;
 window.displayLabelToCode = displayLabelToCode;
 window.labelFromPath = labelFromPath;

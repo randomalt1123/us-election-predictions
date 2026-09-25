@@ -3,32 +3,40 @@
   let _ratingMap = null;
   let _notUpD = 0;
   let _notUpR = 0;
+  let _model = "primary";
+  const MODEL_URLS = {
+    primary: "senateByRating.json",
+    alt: "senateByRating-alt.json",
+  };
 
-  function _loadRatings() {
-    if (_ratingsLoaded) return Promise.resolve();
-    return fetch("senateByRating.json")
+  function _applyData(data) {
+    _ratingMap = new Map();
+    const tiers = [
+      ["no-election", data.NO_ELECTION],
+      ["safe-d", data.SAFE_D],
+      ["likely-d", data.LIKELY_D],
+      ["lean-d", data.LEAN_D],
+      ["tossup", data.TOSSUP],
+      ["lean-r", data.LEAN_R],
+      ["likely-r", data.LIKELY_R],
+      ["safe-r", data.SAFE_R],
+    ];
+    for (const [rating, ids] of tiers) {
+      for (const id of ids || []) {
+        _ratingMap.set(id.toUpperCase(), rating);
+      }
+    }
+    _notUpD = data.NOT_UP_D || 0;
+    _notUpR = data.NOT_UP_R || 0;
+    _ratingsLoaded = true;
+  }
+
+  function _loadRatings(force) {
+    if (_ratingsLoaded && !force) return Promise.resolve();
+    const url = MODEL_URLS[_model] || MODEL_URLS.primary;
+    return fetch(url)
       .then(r => r.json())
-      .then(data => {
-        _ratingMap = new Map();
-        const tiers = [
-          ["no-election", data.NO_ELECTION],
-          ["safe-d", data.SAFE_D],
-          ["likely-d", data.LIKELY_D],
-          ["lean-d", data.LEAN_D],
-          ["tossup", data.TOSSUP],
-          ["lean-r", data.LEAN_R],
-          ["likely-r", data.LIKELY_R],
-          ["safe-r", data.SAFE_R],
-        ];
-        for (const [rating, ids] of tiers) {
-          for (const id of ids || []) {
-            _ratingMap.set(id.toUpperCase(), rating);
-          }
-        }
-        _notUpD = data.NOT_UP_D || 0;
-        _notUpR = data.NOT_UP_R || 0;
-        _ratingsLoaded = true;
-      });
+      .then(_applyData);
   }
 
   function applySenateRatings() {
@@ -87,6 +95,11 @@
     return { ...out, "not-up-d": _notUpD, "not-up-r": _notUpR };
   }
 
+  function setSenateRatingModel(which) {
+    _model = which === "alt" ? "alt" : "primary";
+    return _loadRatings(true).then(() => applySenateRatings());
+  }
+
   function init() {
     _loadRatings().then(() => applySenateRatings());
   }
@@ -100,4 +113,5 @@
   window.applySenateRatings = applySenateRatings;
   window.getSenateCounts = getSenateCounts;
   window.getSenateTierBreakdown = getSenateTierBreakdown;
+  window.setSenateRatingModel = setSenateRatingModel;
 })();
