@@ -5,6 +5,6 @@
   "LEAN_D": ["OR", "AK", "GA"],
   "TOSSUP": [],
   "LEAN_R": ["TX", "OH", "NV", "VT"],
-  "LIKELY_R": ["NE", "KS", "AL", "FL", "NH"],
+  "LIKELY_R": ["NE", "KS", "AL", "FL", "NH", "SC"],
   "SAFE_R": ["ID", "WY", "SD", "OK", "AR", "TN"]
 }

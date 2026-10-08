@@ -585,7 +585,62 @@
 
   /** Senate races keyed by state postal code, same tuple / override rules. */
   const SENATE_RACES = {
-    // "AZ": ["Dem Name", "Rep Name", 0],
+    "AL": ["Everett Wess", "Barry Moore"],
+    "AK": ["Mary Peltola", "Dan Sullivan"],
+    "AR": ["Hallie Shoffner", "Tom Cotton"],
+    "CO": ["John Hickenlooper", "Mark Baisley"],
+    "DE": ["Chris Coons", "Michael Katz"],
+    "FL": ["Angie Nixon", "Ashley Moody"],
+    "GA": ["Jon Ossoff", "Mike Collins"],
+    "ID": {
+      candidates: [
+        { name: "Todd Achilles", party: "I" },
+        { name: "Jim Risch", party: "R" },
+      ],
+    },
+    "IL": ["Juliana Stratton", "Don Tracy"],
+    "IA": ["Josh Turek", "Ashley Hinson"],
+    "KS": ["Adam Hamilton", "Roger Marshall"],
+    "KY": ["Charles Booker", "Andy Barr"],
+    "LA": ["Jamie Davis", "Julia Letlow"],
+    "ME": ["Troy Jackson", "Susan Collins"],
+    "MA": ["Ed Markey", "John Deaton"],
+    "MI": ["Abdul El-Sayed", "Mike Rogers"],
+    "MN": ["Peggy Flanagan", "Michele Tafoya"],
+    "MS": ["Scott Colom", "Cindy Hyde-Smith"],
+    "MT": {
+      candidates: [
+        { name: "Alani Bankhead", party: "D" },
+        { name: "Seth Bodnar", party: "I" },
+        { name: "Kurt Alme", party: "R" },
+      ],
+    },
+    "NE": {
+      candidates: [
+        { name: "Dan Osborn", party: "I" },
+        { name: "Pete Ricketts", party: "R" },
+      ],
+    },
+    "NH": ["Chris Pappas", "John Sununu"],
+    "NJ": ["Cory Booker", "Justin Murphy"],
+    "NM": ["Ben Ray Luján", "Larry Marker"],
+    "NC": ["Roy Cooper", "Michael Whatley"],
+    "OH": ["Sherrod Brown", "Jon Husted"],
+    "OK": ["N'Kiyla Jasmine Thomas", "Kevin Hern"],
+    "OR": ["Jeff Merkley", "David Brock Smith"],
+    "RI": ["Jack Reed", "Raymond McKay"],
+    "SC": ["Annie Andrews", "Darline Graham"],
+    "SD": {
+      candidates: [
+        { name: "Brian Bengs", party: "I" },
+        { name: "Mike Rounds", party: "R" },
+      ],
+    },
+    "TN": ["Marquita Bradshaw", "Bill Hagerty"],
+    "TX": ["James Talarico", "Ken Paxton"],
+    "VA": ["Mark Warner", "Bert Mizusawa"],
+    "WV": ["Rachel Fetty Anderson", "Shelley Moore Capito"],
+    "WY": ["James W. Byrd", "Harriet Hageman"],
   };
 
   const SENATE_RACE_OVERRIDES = {

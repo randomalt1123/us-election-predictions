@@ -1251,6 +1251,19 @@
   stroke-width: 2.5px;
 }
 
+#us-map path.senate-state[data-rating="no-election"],
+#us-map path.governor-state[data-rating="no-election"],
+#us-map path.senate-state[data-rating="no-election"]:hover,
+#us-map path.governor-state[data-rating="no-election"]:hover {
+  cursor: grab;
+  stroke-width: 1.2px;
+}
+
+#map-container.is-panning #us-map path.senate-state[data-rating="no-election"],
+#map-container.is-panning #us-map path.governor-state[data-rating="no-election"] {
+  cursor: grabbing;
+}
+
 .map-select-row { margin-bottom: 10px; }
 .map-select {
   width: 100%;

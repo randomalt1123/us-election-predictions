@@ -123,6 +123,37 @@ function positionTip(clientX, clientY) {
   tip.style.top = `${y}px`;
 }
 
+function majorParty(party) {
+  const p = String(party || "").toUpperCase();
+  if (p === "D" || p === "DEM" || p === "DEMOCRATIC") return "D";
+  if (p === "R" || p === "REP" || p === "REPUBLICAN" || p === "GOP") return "R";
+  return p;
+}
+
+/** Positive D−R margin favors Democrats; a rating is the fallback when margin is unset. */
+function favoredParty(margin, rating) {
+  const m = Number(margin);
+  if (Number.isFinite(m) && m !== 0) return m > 0 ? "D" : "R";
+  const r = String(rating || "");
+  if (r.endsWith("-d")) return "D";
+  if (r.endsWith("-r")) return "R";
+  return null;
+}
+
+function orderCandidatesByProjection(candidates, margin, rating) {
+  if (!candidates || candidates.length < 2) return candidates || [];
+  const fav = favoredParty(margin, rating);
+  if (!fav || !candidates.some((c) => majorParty(c.party) === fav)) return candidates;
+  return candidates
+    .map((c, i) => ({ c, i }))
+    .sort((a, b) => {
+      const aw = majorParty(a.c.party) === fav ? 0 : 1;
+      const bw = majorParty(b.c.party) === fav ? 0 : 1;
+      return aw - bw || a.i - b.i;
+    })
+    .map((x) => x.c);
+}
+
 function renderCandidates(candidates) {
   if (!tipCandidates) return;
   tipCandidates.replaceChildren();
@@ -149,7 +180,7 @@ function renderCandidates(candidates) {
 }
 
 function showTip(name, path) {
-  if (!tip || !name) {
+  if (!tip || !name || path?.dataset?.rating === "no-election") {
     hideTip();
     return;
   }
@@ -164,7 +195,7 @@ function showTip(name, path) {
     margin = Number(live);
   }
   tipMargin.textContent = window.formatRaceMargin?.(margin) ?? "—";
-  renderCandidates(race.candidates);
+  renderCandidates(orderCandidatesByProjection(race.candidates, margin, path?.dataset?.rating));
 
   tip.classList.add("is-visible");
   tip.setAttribute("aria-hidden", "false");
