@@ -2,9 +2,9 @@
   "NO_ELECTION": ["WA", "UT", "MT", "ND", "MO", "NJ", "DE", "IN", "KY", "WV", "VA", "NC", "MS", "LA"],
   "SAFE_D": ["CA", "HI", "NM", "CO", "MN", "IL", "MD", "PA", "NY", "CT", "RI", "MA"],
   "LIKELY_D": ["AZ", "WI", "MI", "ME", "IA"],
-  "LEAN_D": ["OR", "AK", "GA"],
+  "LEAN_D": ["OR", "AK", "GA", "OH"],
   "TOSSUP": [],
-  "LEAN_R": ["TX", "OH", "NV", "VT"],
+  "LEAN_R": ["TX", "NV", "VT"],
   "LIKELY_R": ["NE", "KS", "AL", "FL", "NH", "SC"],
   "SAFE_R": ["ID", "WY", "SD", "OK", "AR", "TN"]
 }
