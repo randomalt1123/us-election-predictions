@@ -1,33 +1,38 @@
 /**
- * Per-district (and Senate) race data for map tooltips.
+ * Per-district / Senate / Governor race data for map tooltips.
  *
- * Default encoding — object keyed by id, value is a 2- or 3-tuple:
+ * House — keyed by district id, 2- or 3-tuple:
  *   [democraticCandidate, republicanCandidate]
  *   [democraticCandidate, republicanCandidate, warOverride]
  *
- * WAR comes from window.DISTRICT_WAR_BASE (database defaults) unless you set
- * an optional third slot / override `war:` for special cases (open seats with
- * two strong newcomers, scandals, etc.). That override fully replaces the base.
+ * WAR comes from window.DISTRICT_WAR_BASE unless you set an optional third slot
+ * or `war:` override. Positive WAR helps Democrats; negative helps Republicans.
  *
- *   war = Wins Above Replacement in D−R points.
- *   Positive WAR helps Democrats; negative helps Republicans.
- *
- * Projected margin is computed (not stored):
+ * House projected margin is computed (not stored):
  *   projected = 2024DistrictMargin
  *             + SWING_ELASTICITY × (genericBallotMargin − 2024NationalMargin)
  *             + war
  *
- * Forecast uses SWING_ELASTICITY = 0.85 (middle ground). Manual "Shift from 2024"
- * applies the full entered swing (elasticity = 1).
- * Generic ballot comes from POLL_AVERAGE.
+ * Senate — keyed by state postal (e.g. "TX"):
+ * Governor — keyed by "GOV-XX":
+ *   [democraticCandidate, republicanCandidate]
+ *   [democraticCandidate, republicanCandidate, projectedMargin]
+ *   { candidates: [...], margin: projectedMargin }
  *
- * Example (use database WAR):
+ * Senate/Governor projected margin is MANUAL (D−R points). Positive = Dem,
+ * negative = Rep. Leave the third slot / `margin` off to show "—" on the tip.
+ *
+ * Example House (database WAR):
  *   DISTRICT_RACES["AZ-01"] = ["Amish Shah", "Jay Feely"];
- * Example (special-case override):
+ * Example House (WAR override):
  *   DISTRICT_RACES["AZ-01"] = ["Amish Shah", "Jay Feely", 1.5];
+ * Example Senate margin:
+ *   SENATE_RACES["TX"] = ["James Talarico", "Ken Paxton", 4.5];
+ * Example Governor margin:
+ *   GOVERNOR_RACES["GOV-AZ"] = ["Katie Hobbs", "Andy Biggs", 3.0];
  *
- * Nonstandard races (R vs R, D vs D, independent, etc.) go in
- * DISTRICT_RACE_OVERRIDES — omit `war` to use the database base.
+ * Nonstandard races (R vs R, D vs D, independent, etc.) go in the *_OVERRIDES
+ * tables — omit `war` / `margin` to keep defaults.
  */
 
 (function () {
@@ -583,64 +588,71 @@
     },
   };
 
-  /** Senate races keyed by state postal code, same tuple / override rules. */
+  /**
+   * Senate races keyed by state postal.
+   * Optional 3rd number / `margin:` = projected D−R margin (manual).
+   */
   const SENATE_RACES = {
-    "AL": ["Everett Wess", "Barry Moore"],
-    "AK": ["Mary Peltola", "Dan Sullivan"],
-    "AR": ["Hallie Shoffner", "Tom Cotton"],
-    "CO": ["John Hickenlooper", "Mark Baisley"],
-    "DE": ["Chris Coons", "Michael Katz"],
-    "FL": ["Angie Nixon", "Ashley Moody"],
-    "GA": ["Jon Ossoff", "Mike Collins"],
+    "AL": ["Everett Wess", "Barry Moore", -21],
+    "AK": ["Mary Peltola", "Dan Sullivan", 2],
+    "AR": ["Hallie Shoffner", "Tom Cotton", -16],
+    "CO": ["John Hickenlooper", "Mark Baisley", 18],
+    "DE": ["Chris Coons", "Michael Katz", 20],
+    "FL": ["Angie Nixon", "Ashley Moody", -6],
+    "GA": ["Jon Ossoff", "Mike Collins", 11],
     "ID": {
       candidates: [
         { name: "Todd Achilles", party: "I" },
         { name: "Jim Risch", party: "R" },
       ],
+      margin: -14,
     },
-    "IL": ["Juliana Stratton", "Don Tracy"],
-    "IA": ["Josh Turek", "Ashley Hinson"],
-    "KS": ["Adam Hamilton", "Roger Marshall"],
-    "KY": ["Charles Booker", "Andy Barr"],
-    "LA": ["Jamie Davis", "Julia Letlow"],
-    "ME": ["Troy Jackson", "Susan Collins"],
-    "MA": ["Ed Markey", "John Deaton"],
-    "MI": ["Abdul El-Sayed", "Mike Rogers"],
-    "MN": ["Peggy Flanagan", "Michele Tafoya"],
-    "MS": ["Scott Colom", "Cindy Hyde-Smith"],
+    "IL": ["Juliana Stratton", "Don Tracy", 16],
+    "IA": ["Josh Turek", "Ashley Hinson", -1],
+    "KS": ["Adam Hamilton", "Roger Marshall", -2],
+    "KY": ["Charles Booker", "Andy Barr", -13],
+    "LA": ["Jamie Davis", "Julia Letlow", -19],
+    "ME": ["Troy Jackson", "Susan Collins", 4],
+    "MA": ["Ed Markey", "John Deaton", 29],
+    "MI": ["Abdul El-Sayed", "Mike Rogers", 5],
+    "MN": ["Peggy Flanagan", "Michele Tafoya", 12],
+    "MS": ["Scott Colom", "Cindy Hyde-Smith", -8],
     "MT": {
       candidates: [
         { name: "Alani Bankhead", party: "D" },
         { name: "Seth Bodnar", party: "I" },
         { name: "Kurt Alme", party: "R" },
       ],
+      margin: -10,
     },
     "NE": {
       candidates: [
         { name: "Dan Osborn", party: "I" },
         { name: "Pete Ricketts", party: "R" },
       ],
+      margin: -4,
     },
-    "NH": ["Chris Pappas", "John Sununu"],
-    "NJ": ["Cory Booker", "Justin Murphy"],
-    "NM": ["Ben Ray Luján", "Larry Marker"],
-    "NC": ["Roy Cooper", "Michael Whatley"],
-    "OH": ["Sherrod Brown", "Jon Husted"],
-    "OK": ["N'Kiyla Jasmine Thomas", "Kevin Hern"],
-    "OR": ["Jeff Merkley", "David Brock Smith"],
-    "RI": ["Jack Reed", "Raymond McKay"],
-    "SC": ["Annie Andrews", "Darline Graham"],
+    "NH": ["Chris Pappas", "John Sununu", 10],
+    "NJ": ["Cory Booker", "Justin Murphy", 15],
+    "NM": ["Ben Ray Luján", "Larry Marker", 13],
+    "NC": ["Roy Cooper", "Michael Whatley", 11],
+    "OH": ["Sherrod Brown", "Jon Husted", 2],
+    "OK": ["N'Kiyla Jasmine Thomas", "Kevin Hern", -17],
+    "OR": ["Jeff Merkley", "David Brock Smith", 16],
+    "RI": ["Jack Reed", "Raymond McKay", 21],
+    "SC": ["Annie Andrews", "Darline Graham", -4],
     "SD": {
       candidates: [
         { name: "Brian Bengs", party: "I" },
         { name: "Mike Rounds", party: "R" },
       ],
+      margin: -19,
     },
-    "TN": ["Marquita Bradshaw", "Bill Hagerty"],
-    "TX": ["James Talarico", "Ken Paxton"],
-    "VA": ["Mark Warner", "Bert Mizusawa"],
-    "WV": ["Rachel Fetty Anderson", "Shelley Moore Capito"],
-    "WY": ["James W. Byrd", "Harriet Hageman"],
+    "TN": ["Marquita Bradshaw", "Bill Hagerty", -22],
+    "TX": ["James Talarico", "Ken Paxton", 1],
+    "VA": ["Mark Warner", "Bert Mizusawa", 17],
+    "WV": ["Rachel Fetty Anderson", "Shelley Moore Capito", -34],
+    "WY": ["James W. Byrd", "Harriet Hageman", -36],
   };
 
   const SENATE_RACE_OVERRIDES = {
@@ -649,11 +661,14 @@
     //     { name: "Independent Incumbent", party: "I" },
     //     { name: "Republican Challenger", party: "R" },
     //   ],
-    //   war: 2.0,
+    //   margin: 2.0,
     // },
   };
 
-  /** Governor races keyed by GOV-XX (state postal), same tuple / override rules. */
+  /**
+   * Governor races keyed by GOV-XX.
+   * Optional 3rd number / `margin:` = projected D−R margin (manual).
+   */
   const GOVERNOR_RACES = {
     "GOV-AL": ["Doug Jones", "Tommy Tuberville"],
     "GOV-AK": ["Jonathan Kreiss-Tomkins", "Bernadette Wilson"],
@@ -699,7 +714,7 @@
     //     { name: "Incumbent", party: "D" },
     //     { name: "Challenger", party: "R" },
     //   ],
-    //   war: 2.0,
+    //   margin: 3.0,
     // },
   };
 
@@ -738,7 +753,7 @@
     return Number.isFinite(n) ? n : fallback;
   }
 
-  /** True when a race row explicitly sets a special-case WAR override. */
+  /** House only: special-case WAR override (array[2] or `war:`). */
   function _hasWarOverride(row) {
     if (!row) return false;
     if (Array.isArray(row)) return row.length >= 3 && row[2] != null && row[2] !== "";
@@ -750,14 +765,28 @@
     return _numOr(row.war, 0);
   }
 
+  /** Senate/Governor: manual projected D−R margin (array[2] or `margin:`). */
+  function _manualMargin(row) {
+    if (!row) return null;
+    if (Array.isArray(row)) {
+      if (row.length < 3 || row[2] == null || row[2] === "") return null;
+      const n = Number(row[2]);
+      return Number.isFinite(n) ? n : null;
+    }
+    if (row.margin == null || row.margin === "") return null;
+    const n = Number(row.margin);
+    return Number.isFinite(n) ? n : null;
+  }
+
   function _baseWar(id) {
     const db = window.DISTRICT_WAR_BASE;
     if (!db || db[id] == null || db[id] === "") return 0;
     return _numOr(db[id], 0);
   }
 
-  function _fromRow(row) {
-    if (!row) return { candidates: [], warOverride: null };
+  function _fromRow(row, opts) {
+    const senateOrGov = !!(opts && opts.manualMargin);
+    if (!row) return { candidates: [], warOverride: null, margin: null };
     if (Array.isArray(row)) {
       const [dem, rep] = row;
       const candidates = [];
@@ -765,7 +794,8 @@
       if (rep) candidates.push({ name: String(rep), party: "R" });
       return {
         candidates,
-        warOverride: _hasWarOverride(row) ? _warOverrideValue(row) : null,
+        warOverride: !senateOrGov && _hasWarOverride(row) ? _warOverrideValue(row) : null,
+        margin: senateOrGov ? _manualMargin(row) : null,
       };
     }
     if (Array.isArray(row.candidates)) {
@@ -774,7 +804,8 @@
           name: String(c.name || ""),
           party: String(c.party || "O").toUpperCase(),
         })),
-        warOverride: _hasWarOverride(row) ? _warOverrideValue(row) : null,
+        warOverride: !senateOrGov && _hasWarOverride(row) ? _warOverrideValue(row) : null,
+        margin: senateOrGov ? _manualMargin(row) : null,
       };
     }
     const candidates = [];
@@ -782,8 +813,19 @@
     if (row.rep) candidates.push({ name: String(row.rep), party: "R" });
     return {
       candidates,
-      warOverride: _hasWarOverride(row) ? _warOverrideValue(row) : null,
+      warOverride: !senateOrGov && _hasWarOverride(row) ? _warOverrideValue(row) : null,
+      margin: senateOrGov ? _manualMargin(row) : null,
     };
+  }
+
+  function _refreshChamber(id) {
+    const run = () => {
+      if (_isGovernorId(id)) window.applyGovernorRatings?.();
+      else if (_isSenateId(id)) window.applySenateRatings?.();
+      else window.applyDistrictRatings?.();
+    };
+    if (typeof queueMicrotask === "function") queueMicrotask(run);
+    else setTimeout(run, 0);
   }
 
   /** Fraction of national generic-ballot shift applied to each district (Forecast). */
@@ -829,17 +871,25 @@
   }
 
   /**
-   * Cautious projection:
-   *   2024 district + elasticity × (generic ballot − 2024 national) + WAR
-   * Default elasticity is FORECAST_SWING_ELASTICITY (0.85).
+   * House: 2024 district + elasticity × (generic − 2024 national) + WAR.
+   * Senate/Governor: manual `margin` on the race row (D−R points).
    * Unopposed / D-only or R-only (no Independent) → ±100.
    */
   function computeProjectedMargin(id, opts) {
     id = _padId(id);
     const { base: table, overrides } = _tablesFor(id);
     const row = overrides[id] || table[id];
-    const forced = unopposedSafeMargin(_fromRow(row).candidates);
+    const manual = _isSenateId(id) || _isGovernorId(id);
+    const parsed = _fromRow(row, { manualMargin: manual });
+    const forced = unopposedSafeMargin(parsed.candidates);
     if (forced != null) return forced;
+
+    if (manual) {
+      if (opts && opts.margin != null && Number.isFinite(Number(opts.margin))) {
+        return Number(opts.margin);
+      }
+      return parsed.margin;
+    }
 
     const b = window.HOUSE_2024_BASELINE;
     if (!b?.marginById || b.marginById[id] === undefined) return null;
@@ -861,7 +911,7 @@
 
   function getDistrictWar(id) {
     id = _padId(id);
-    if (!id) return 0;
+    if (!id || _isSenateId(id) || _isGovernorId(id)) return 0;
     const { base, overrides } = _tablesFor(id);
     if (overrides[id] && _hasWarOverride(overrides[id])) {
       return _warOverrideValue(overrides[id]);
@@ -873,6 +923,9 @@
 
   function setDistrictWar(id, war) {
     id = _padId(id);
+    if (_isSenateId(id) || _isGovernorId(id)) {
+      return setRaceMargin(id, war);
+    }
     const { base, overrides } = _tablesFor(id);
     const w = _numOr(war, 0);
     if (overrides[id]) {
@@ -887,16 +940,15 @@
         base[id] = [null, null, w];
       }
     }
-    if (typeof queueMicrotask === "function") {
-      queueMicrotask(() => window.applyDistrictRatings?.());
-    } else {
-      setTimeout(() => window.applyDistrictRatings?.(), 0);
-    }
+    _refreshChamber(id);
     return getRace(id);
   }
 
   function clearDistrictWarOverride(id) {
     id = _padId(id);
+    if (_isSenateId(id) || _isGovernorId(id)) {
+      return clearRaceMargin(id);
+    }
     const { base, overrides } = _tablesFor(id);
     if (overrides[id] && "war" in overrides[id]) {
       delete overrides[id].war;
@@ -908,12 +960,37 @@
         delete row.war;
       }
     }
-    if (typeof queueMicrotask === "function") {
-      queueMicrotask(() => window.applyDistrictRatings?.());
-    } else {
-      setTimeout(() => window.applyDistrictRatings?.(), 0);
-    }
+    _refreshChamber(id);
     return getRace(id);
+  }
+
+  /** Set manual projected D−R margin for a Senate or Governor race. */
+  function setRaceMargin(id, margin) {
+    id = _padId(id);
+    if (!_isSenateId(id) && !_isGovernorId(id)) {
+      throw new Error("setRaceMargin is only for Senate (XX) or Governor (GOV-XX) races");
+    }
+    const { base, overrides } = _tablesFor(id);
+    const clear = margin == null || margin === "";
+    const m = clear ? null : _numOr(margin, null);
+    const target = overrides[id] ? overrides : base;
+    const row = target[id];
+    if (Array.isArray(row)) {
+      target[id] = clear
+        ? [row[0] ?? null, row[1] ?? null]
+        : [row[0] ?? null, row[1] ?? null, m];
+    } else if (row && typeof row === "object") {
+      if (clear) delete row.margin;
+      else row.margin = m;
+    } else {
+      target[id] = clear ? [null, null] : [null, null, m];
+    }
+    _refreshChamber(id);
+    return getRace(id);
+  }
+
+  function clearRaceMargin(id) {
+    return setRaceMargin(id, null);
   }
 
   function getRace(id) {
@@ -923,7 +1000,8 @@
     }
     const { base, overrides } = _tablesFor(id);
     const row = overrides[id] || base[id];
-    const n = _fromRow(row);
+    const manual = _isSenateId(id) || _isGovernorId(id);
+    const n = _fromRow(row, { manualMargin: manual });
     const war = getDistrictWar(id);
     return {
       id,
@@ -931,20 +1009,21 @@
       candidates: n.candidates,
       war,
       warOverride: n.warOverride,
-      margin: computeProjectedMargin(id, { war }),
+      margin: computeProjectedMargin(id, manual ? { margin: n.margin } : { war }),
     };
   }
 
-  function setDistrictRace(id, dem, rep, war) {
+  function setDistrictRace(id, dem, rep, third) {
     id = _padId(id);
     const { base } = _tablesFor(id);
     const demName = dem == null || dem === "" ? null : String(dem);
     const repName = rep == null || rep === "" ? null : String(rep);
-    if (war == null || war === "") {
+    if (third == null || third === "") {
       base[id] = [demName, repName];
     } else {
-      base[id] = [demName, repName, _numOr(war, 0)];
+      base[id] = [demName, repName, _numOr(third, 0)];
     }
+    _refreshChamber(id);
     return getRace(id);
   }
 
@@ -961,10 +1040,16 @@
         }))
       : [];
     const entry = { candidates };
-    if (spec.war != null && spec.war !== "") {
+    const manual = _isSenateId(id) || _isGovernorId(id);
+    if (manual) {
+      if (spec.margin != null && spec.margin !== "") {
+        entry.margin = _numOr(spec.margin, 0);
+      }
+    } else if (spec.war != null && spec.war !== "") {
       entry.war = _numOr(spec.war, 0);
     }
     overrides[id] = entry;
+    _refreshChamber(id);
     return getRace(id);
   }
 
@@ -972,6 +1057,7 @@
     id = _padId(id);
     const { overrides } = _tablesFor(id);
     delete overrides[id];
+    _refreshChamber(id);
     return getRace(id);
   }
 
@@ -1012,6 +1098,8 @@
   window.getDistrictWar = getDistrictWar;
   window.setDistrictWar = setDistrictWar;
   window.clearDistrictWarOverride = clearDistrictWarOverride;
+  window.setRaceMargin = setRaceMargin;
+  window.clearRaceMargin = clearRaceMargin;
   window.setDistrictRace = setDistrictRace;
   window.overrideDistrictRace = overrideDistrictRace;
   window.clearDistrictRaceOverride = clearDistrictRaceOverride;
