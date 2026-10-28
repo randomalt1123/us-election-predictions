@@ -167,13 +167,17 @@
       background: #ffffff;
       box-shadow: 0 1px 6px rgba(0,0,0,0.12);
       display: flex;
-      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      padding: 4px 12px;
       box-sizing: border-box;
     }
     .top-bar-inner {
+      flex: 1;
       width: 100%;
       max-width: 720px;
-      padding: 4px 16px;
+      margin: 0 auto;
+      padding: 0;
       box-sizing: border-box;
     }
     .seat-counts {
@@ -394,6 +398,287 @@
 
     body.dark-mode .dark-toggle { background: #e0e0e0; color: #1a1a2e; }
 
+    .updates-toggle {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 10px;
+      border: 1px solid rgba(0,0,0,0.12);
+      border-radius: 6px;
+      background: #1e40af;
+      color: #fff;
+      font: 650 11px/1 system-ui, -apple-system, sans-serif;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .updates-toggle:hover { background: #1d4ed8; }
+    body.dark-mode .updates-toggle {
+      border-color: rgba(255,255,255,0.12);
+      background: #2563eb;
+    }
+    body.dark-mode .updates-toggle:hover { background: #3b82f6; }
+    .updates-badge {
+      min-width: 16px;
+      height: 16px;
+      padding: 0 4px;
+      border-radius: 999px;
+      background: #fbbf24;
+      color: #1a1400;
+      font-size: 10px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .updates-board {
+      position: fixed;
+      top: calc(var(--top-bar-h) + 8px);
+      left: 10px;
+      z-index: 1100;
+      width: min(340px, calc(100vw - 20px));
+      max-height: min(70vh, 560px);
+      display: flex;
+      flex-direction: column;
+      background: #1a1a1a;
+      color: #e5e5e5;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+      overflow: visible;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-6px);
+      transition: opacity 0.15s ease, transform 0.15s ease;
+    }
+    .updates-board.is-open {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+    .updates-board-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 12px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .updates-board-title-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+    .updates-board-title {
+      margin: 0;
+      font: 700 18px/1.15 system-ui, -apple-system, sans-serif;
+      color: #f5f5f5;
+    }
+    .updates-help {
+      position: relative;
+      display: inline-flex;
+      flex-shrink: 0;
+    }
+    .updates-help-btn {
+      width: 18px;
+      height: 18px;
+      padding: 0;
+      border: 1px solid rgba(255,255,255,0.35);
+      border-radius: 50%;
+      background: transparent;
+      color: #bbb;
+      font: 700 11px/1 system-ui, -apple-system, sans-serif;
+      cursor: help;
+    }
+    .updates-help-btn:hover,
+    .updates-help-btn:focus-visible {
+      color: #fff;
+      border-color: rgba(255,255,255,0.7);
+      outline: none;
+    }
+    .updates-help-tip {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      z-index: 1200;
+      width: max(280px, min(360px, calc(100vw - 40px)));
+      padding: 8px 10px;
+      border-radius: 6px;
+      background: #111;
+      border: 1px solid rgba(255,255,255,0.14);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+      color: #ddd;
+      font: 400 12px/1.45 system-ui, -apple-system, sans-serif;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-2px);
+      transition: opacity 0.12s ease, transform 0.12s ease;
+    }
+    .updates-help:hover .updates-help-tip,
+    .updates-help:focus-within .updates-help-tip {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+    .updates-close {
+      width: 28px;
+      height: 28px;
+      border: none;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.08);
+      color: #e5e5e5;
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .updates-close:hover { background: rgba(255,255,255,0.16); }
+    .updates-list {
+      overflow: auto;
+      min-height: 0;
+      flex: 1;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border-radius: 0 0 8px 8px;
+      background: inherit;
+    }
+    .upd-empty {
+      margin: 8px 4px;
+      color: #999;
+      font-size: 13px;
+    }
+    .upd-card {
+      padding: 12px;
+      border-radius: 8px;
+      background: #242424;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .upd-card.is-latest {
+      border-color: rgba(96, 165, 250, 0.45);
+    }
+    .upd-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .upd-date {
+      font-size: 11px;
+      font-weight: 600;
+      color: #999;
+    }
+    .upd-chamber {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 3px 7px;
+      border-radius: 999px;
+      color: #0f172a;
+      background: #94a3b8;
+    }
+    .upd-chamber--house { background: #93c5fd; }
+    .upd-chamber--senate { background: #c4b5fd; }
+    .upd-chamber--governor { background: #6ee7b7; }
+    .upd-changes {
+      list-style: none;
+      margin: 0 0 10px;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .upd-change {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+    }
+    .upd-race {
+      min-width: 64px;
+      font-weight: 700;
+      color: #eee;
+    }
+    .upd-arrow {
+      color: #888;
+      font-weight: 700;
+    }
+    .upd-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      border-radius: 999px;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+    .upd-note {
+      margin: 0;
+      padding: 8px 10px;
+      border-radius: 6px;
+      background: #1a1a1a;
+      border: 1px dashed rgba(255,255,255,0.16);
+      color: #ccc;
+      font-size: 12px;
+      line-height: 1.45;
+      min-height: 2.6em;
+      white-space: pre-wrap;
+    }
+    .upd-note.is-placeholder {
+      color: #666;
+      font-style: italic;
+    }
+    body:not(.dark-mode) .updates-board {
+      background: #fff;
+      color: #111;
+      border-color: rgba(0,0,0,0.1);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    }
+    body:not(.dark-mode) .updates-board-header {
+      border-bottom-color: rgba(0,0,0,0.08);
+    }
+    body:not(.dark-mode) .updates-board-title { color: #111; }
+    body:not(.dark-mode) .updates-help-btn {
+      color: #666;
+      border-color: rgba(0,0,0,0.3);
+    }
+    body:not(.dark-mode) .updates-help-btn:hover,
+    body:not(.dark-mode) .updates-help-btn:focus-visible {
+      color: #111;
+      border-color: rgba(0,0,0,0.55);
+    }
+    body:not(.dark-mode) .updates-help-tip {
+      background: #fff;
+      border-color: rgba(0,0,0,0.12);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+      color: #333;
+    }
+    body:not(.dark-mode) .updates-close {
+      background: rgba(0,0,0,0.05);
+      color: #111;
+    }
+    body:not(.dark-mode) .upd-card {
+      background: #f7f7f7;
+      border-color: rgba(0,0,0,0.08);
+    }
+    body:not(.dark-mode) .upd-card.is-latest {
+      border-color: rgba(37, 99, 235, 0.4);
+      background: #fff;
+    }
+    body:not(.dark-mode) .upd-race { color: #222; }
+    body:not(.dark-mode) .upd-note {
+      background: #fff;
+      border-color: rgba(0,0,0,0.12);
+      color: #444;
+    }
+    body:not(.dark-mode) .upd-note.is-placeholder { color: #999; }
+
     body.dark-mode .poll-panel {
       background: #1e1e1e;
       box-shadow: 0 0 10px rgba(0,0,0,0.6);
@@ -433,6 +718,10 @@
 <body class="dark-mode">
 
 <div id="top-bar" class="top-bar">
+  <button type="button" id="updates-toggle" class="updates-toggle" aria-expanded="false" aria-controls="updates-board" title="Changelog">
+    Updates
+    <span class="updates-badge" hidden>0</span>
+  </button>
   <div class="top-bar-inner">
     <div class="seat-composition">
       <div class="seat-counts">
@@ -447,6 +736,20 @@
 <div class="tier-tooltip" id="tier-tooltip"></div>
 
 <button type="button" id="dark-toggle" class="dark-toggle" title="Toggle dark mode">&#9790;</button>
+
+<div id="updates-board" class="updates-board" aria-hidden="true" role="dialog" aria-labelledby="updates-board-title">
+  <div class="updates-board-header">
+    <div class="updates-board-title-row">
+      <h2 id="updates-board-title" class="updates-board-title">Changelog</h2>
+      <span class="updates-help">
+        <button type="button" class="updates-help-btn" aria-describedby="updates-help-tip" aria-label="About ratings">?</button>
+        <span id="updates-help-tip" class="updates-help-tip" role="tooltip">Note: Our forecasts do not include the toss-up rating as we feel that many other forecasters use it as a cop-out to avoid being wrong.</span>
+      </span>
+    </div>
+    <button type="button" id="updates-close" class="updates-close" aria-label="Close updates">&times;</button>
+  </div>
+  <div id="updates-list" class="updates-list"></div>
+</div>
 
 <div id="poll-panel" class="poll-panel">
   <div class="poll-panel-title">Map mode</div>
@@ -1178,6 +1481,7 @@
 <script src="senate-ratings.js"></script>
 <script src="governor-ratings.js"></script>
 <script src="konami-model.js"></script>
+<script src="model-updates.js"></script>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="map.js"></script>
 </body>
