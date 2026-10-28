@@ -1646,15 +1646,14 @@ body.dark-mode #us-map path.governor-state {
     var pollAvgPanel = document.getElementById("poll-avg-panel");
 
     function COLORS(key) { return (window.RATING_COLORS || {})[key]; }
-    var TIER_ORDER_HOUSE = ["safe-d", "likely-d", "lean-d", "tossup", "lean-r", "likely-r", "safe-r"];
-    var TIER_ORDER_SENATE = ["not-up-d", "safe-d", "likely-d", "lean-d", "tossup", "lean-r", "likely-r", "safe-r", "not-up-r"];
-    var TIER_ORDER_GOVERNOR = ["safe-d", "likely-d", "lean-d", "tossup", "lean-r", "likely-r", "safe-r"];
+    var TIER_ORDER_HOUSE = ["safe-d", "likely-d", "lean-d", "lean-r", "likely-r", "safe-r"];
+    var TIER_ORDER_SENATE = ["not-up-d", "safe-d", "likely-d", "lean-d", "lean-r", "likely-r", "safe-r", "not-up-r"];
+    var TIER_ORDER_GOVERNOR = ["safe-d", "likely-d", "lean-d", "lean-r", "likely-r", "safe-r"];
     var TIER_LABELS = {
       "not-up-d": "Not on ballot (D-held)",
       "safe-d": "Safe D",
       "likely-d": "Likely D",
       "lean-d": "Lean D",
-      tossup: "Toss-up",
       "lean-r": "Lean R",
       "likely-r": "Likely R",
       "safe-r": "Safe R",
@@ -1662,7 +1661,7 @@ body.dark-mode #us-map path.governor-state {
     };
 
     function countHouseByTier() {
-      var o = { "safe-d": 0, "likely-d": 0, "lean-d": 0, tossup: 0, "lean-r": 0, "likely-r": 0, "safe-r": 0 };
+      var o = { "safe-d": 0, "likely-d": 0, "lean-d": 0, "lean-r": 0, "likely-r": 0, "safe-r": 0 };
       document.querySelectorAll("#districts path.district").forEach(function(p) {
         var r = p.dataset.rating;
         if (r && o[r] !== undefined) o[r]++;
@@ -1706,7 +1705,6 @@ body.dark-mode #us-map path.governor-state {
         "safe-d": COLORS("safe-d"),
         "likely-d": COLORS("likely-d"),
         "lean-d": COLORS("lean-d"),
-        tossup: COLORS("tossup"),
         "lean-r": COLORS("lean-r"),
         "likely-r": COLORS("likely-r"),
         "safe-r": COLORS("safe-r"),
@@ -1717,11 +1715,9 @@ body.dark-mode #us-map path.governor-state {
         if (!br) { setTimeout(updateSeatCounts, 300); return; }
         var demCount = (br["not-up-d"] || 0) + br["safe-d"] + br["likely-d"] + br["lean-d"];
         var repCount = (br["not-up-r"] || 0) + br["lean-r"] + br["likely-r"] + br["safe-r"];
-        var toss = br.tossup;
         document.getElementById("seat-count-dem").textContent = demCount;
         document.getElementById("seat-count-rep").textContent = repCount;
-        document.getElementById("seat-label").textContent =
-          "Senate (D / R)" + (toss ? " · " + toss + " toss-up" : "");
+        document.getElementById("seat-label").textContent = "Senate (D / R)";
         renderTierBar(tierBar, TIER_ORDER_SENATE, br, 100, Object.assign({
           "not-up-d": "rgb(16, 38, 84)",
           "not-up-r": "rgb(120, 18, 26)",
@@ -1732,12 +1728,10 @@ body.dark-mode #us-map path.governor-state {
         if (!gbr) { setTimeout(updateSeatCounts, 300); return; }
         var gDem = gbr["safe-d"] + gbr["likely-d"] + gbr["lean-d"];
         var gRep = gbr["lean-r"] + gbr["likely-r"] + gbr["safe-r"];
-        var gToss = gbr.tossup;
-        var gTotal = gDem + gRep + gToss;
+        var gTotal = gDem + gRep;
         document.getElementById("seat-count-dem").textContent = gDem;
         document.getElementById("seat-count-rep").textContent = gRep;
-        document.getElementById("seat-label").textContent =
-          "Governors (D / R)" + (gToss ? " · " + gToss + " toss-up" : "");
+        document.getElementById("seat-label").textContent = "Governors (D / R)";
         renderTierBar(tierBar, TIER_ORDER_GOVERNOR, gbr, gTotal || 36, tierColors);
 
       } else {
@@ -1745,11 +1739,9 @@ body.dark-mode #us-map path.governor-state {
         var total = 435;
         var hDem = hc["safe-d"] + hc["likely-d"] + hc["lean-d"];
         var hRep = hc["lean-r"] + hc["likely-r"] + hc["safe-r"];
-        var hToss = hc.tossup;
         document.getElementById("seat-count-dem").textContent = hDem;
         document.getElementById("seat-count-rep").textContent = hRep;
-        document.getElementById("seat-label").textContent =
-          "House (D / R)" + (hToss ? " · " + hToss + " toss-up" : "");
+        document.getElementById("seat-label").textContent = "House (D / R)";
         renderTierBar(tierBar, TIER_ORDER_HOUSE, hc, total, tierColors);
       }
     }

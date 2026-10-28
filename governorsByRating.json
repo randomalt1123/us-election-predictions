@@ -3,7 +3,6 @@
   "SAFE_D": ["CA", "HI", "NM", "CO", "MN", "IL", "MD", "PA", "NY", "CT", "RI", "MA"],
   "LIKELY_D": ["AZ", "AK", "WI", "MI", "ME", "IA"],
   "LEAN_D": ["OR", "GA", "OH"],
-  "TOSSUP": [],
   "LEAN_R": ["TX", "NV", "VT"],
   "LIKELY_R": ["NE", "KS", "AL", "FL", "NH", "SC"],
   "SAFE_R": ["ID", "WY", "SD", "OK", "AR", "TN"]

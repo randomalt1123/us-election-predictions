@@ -14,7 +14,6 @@
       ["safe-d", data.SAFE_D],
       ["likely-d", data.LIKELY_D],
       ["lean-d", data.LEAN_D],
-      ["tossup", data.TOSSUP],
       ["lean-r", data.LEAN_R],
       ["likely-r", data.LIKELY_R],
       ["safe-r", data.SAFE_R],
@@ -70,7 +69,6 @@
     return {
       dem: b["safe-d"] + b["likely-d"] + b["lean-d"],
       rep: b["safe-r"] + b["likely-r"] + b["lean-r"],
-      tossup: b.tossup,
     };
   }
 
@@ -80,7 +78,6 @@
       "safe-d": 0,
       "likely-d": 0,
       "lean-d": 0,
-      tossup: 0,
       "lean-r": 0,
       "likely-r": 0,
       "safe-r": 0,

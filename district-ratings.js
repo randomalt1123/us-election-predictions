@@ -1,6 +1,6 @@
 /**
  * Per-district ratings derived from projected D−R margin:
- *   |m| < 0.05 → treated as D+0.1 (lean D; no toss-ups)
+ *   |m| < 0.05 → treated as D+0.1 (lean D)
  *   0.05–4.9   → lean
  *   5–14.9     → likely
  *   15+        → safe
@@ -12,7 +12,6 @@ const RATING_COLORS = {
   "safe-d": "rgb(28, 64, 140)",
   "likely-d": "rgb(87, 124, 204)",
   "lean-d": "rgb(138, 175, 255)",
-  tossup: "rgb(232, 200, 77)",
   "lean-r": "rgb(255, 139, 152)",
   "likely-r": "rgb(255, 88, 101)",
   "safe-r": "rgb(191, 29, 41)",
@@ -20,7 +19,7 @@ const RATING_COLORS = {
 
 const _NativeMap = globalThis.Map;
 
-let SAFE_D = [], LIKELY_D = [], LEAN_D = [], TOSSUP = [], LEAN_R = [], LIKELY_R = [], SAFE_R = [];
+let SAFE_D = [], LIKELY_D = [], LEAN_D = [], LEAN_R = [], LIKELY_R = [], SAFE_R = [];
 
 function _padDistrictId(id) {
   const dash = id.lastIndexOf("-");
@@ -44,7 +43,6 @@ function _loadRatingsFromJSON() {
       SAFE_D   = (data.SAFE_D   || []).map(_padDistrictId);
       LIKELY_D = (data.LIKELY_D || []).map(_padDistrictId);
       LEAN_D   = (data.LEAN_D   || []).map(_padDistrictId);
-      TOSSUP   = (data.TOSSUP   || []).map(_padDistrictId);
       LEAN_R   = (data.LEAN_R   || []).map(_padDistrictId);
       LIKELY_R = (data.LIKELY_R || []).map(_padDistrictId);
       SAFE_R   = (data.SAFE_R   || []).map(_padDistrictId);
@@ -145,7 +143,6 @@ function buildRatingByDistrictId() {
   apply(SAFE_D, "safe-d");
   apply(LIKELY_D, "likely-d");
   apply(LEAN_D, "lean-d");
-  apply(TOSSUP, "tossup");
   apply(LEAN_R, "lean-r");
   apply(LIKELY_R, "likely-r");
   apply(SAFE_R, "safe-r");
@@ -239,7 +236,7 @@ function applyDistrictRatingsFromArrays() {
     if (!rawLabel) return;
     const code = displayLabelToCode(rawLabel);
     if (!code) return;
-    const rating = ratingById.get(code) ?? "tossup";
+    const rating = ratingById.get(code) ?? "lean-d";
     const raceMargin = window.computeProjectedMargin?.(code) ?? window.getRace?.(code)?.margin;
     setPathFillForRating(path, code, rating, raceMargin);
   });

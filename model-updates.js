@@ -2,7 +2,7 @@
  * Model changelog shown in the Updates board (top-left).
  * Newest entries first. Fill in `note` with your explanation.
  *
- * rating keys: safe-d | likely-d | lean-d | tossup | lean-r | likely-r | safe-r
+ * rating keys: safe-d | likely-d | lean-d | lean-r | likely-r | safe-r
  */
 window.MODEL_UPDATES = [
   {
@@ -32,7 +32,6 @@ window.MODEL_UPDATES = [
     "safe-d": "Safe D",
     "likely-d": "Likely D",
     "lean-d": "Lean D",
-    tossup: "Toss-up",
     "lean-r": "Lean R",
     "likely-r": "Likely R",
     "safe-r": "Safe R",
